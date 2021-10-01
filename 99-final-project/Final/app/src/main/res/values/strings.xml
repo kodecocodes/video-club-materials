@@ -1,3 +1,13 @@
 <resources>
-  <string name="app_name">Club RW</string>
+    <string name="app_name">Club RW</string>
+
+    <string name="notification_channel_audio" translatable="false">audio-channel</string>
+    <string name="notification_channel_name">Listening to Audio</string>
+    <string name="notification_text">You are currently listening to a channel.</string>
+
+    <string name="dialog_permission_rationale_title">Allow access to microphone?</string>
+    <string name="dialog_permission_rationale_text">In order for you to be heard by others,
+        Club RW requires permission to record your voice. Please consider allowing us to do this.</string>
+
+    <string name="button_ok">OK</string>
 </resources>

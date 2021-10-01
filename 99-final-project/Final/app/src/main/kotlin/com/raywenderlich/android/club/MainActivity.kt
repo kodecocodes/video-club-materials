@@ -34,14 +34,91 @@
 
 package com.raywenderlich.android.club
 
+import android.Manifest
+import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Bundle
+import android.widget.Button
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.raywenderlich.android.club.service.AudioService
+import kotlinx.coroutines.launch
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
+
+    // UI
+    private val joinButton by lazy { findViewById<Button>(R.id.button_join) }
+    private val leaveButton by lazy { findViewById<Button>(R.id.button_leave) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Hide splash screen
         setTheme(R.style.AppTheme)
         super.onCreate(savedInstanceState)
+
+        // Setup listeners
+        joinButton.setOnClickListener { joinChannel() }
+        leaveButton.setOnClickListener { leaveChannel() }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        leaveChannel()
+    }
+
+    /* Listeners */
+
+    private fun joinChannel() =
+        lifecycleScope.launch {
+            val hasPermission = awaitPermission(Manifest.permission.RECORD_AUDIO)
+            if (hasPermission) {
+                AudioService.start(this@MainActivity)
+
+                // TODO Toggle these automatically through a flow exposed by the service
+                joinButton.isEnabled = false
+                leaveButton.isEnabled = true
+            }
+        }
+
+    private fun leaveChannel() {
+        AudioService.stop(this)
+
+        // TODO Toggle these automatically through a flow exposed by the service
+        leaveButton.isEnabled = false
+        joinButton.isEnabled = true
+    }
+
+    /* Private */
+
+    private suspend fun awaitPermission(permission: String) =
+        suspendCoroutine<Boolean> { continuation ->
+            if (ContextCompat.checkSelfPermission(this, permission) == PERMISSION_GRANTED) {
+                // Already have permission
+                continuation.resume(true)
+
+            } else {
+                val launcher = registerForActivityResult(RequestPermission()) { granted ->
+                    continuation.resume(granted)
+                }
+
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
+                    // Show explanation UI for the permission
+                    AlertDialog.Builder(this)
+                        .setTitle(R.string.dialog_permission_rationale_title)
+                        .setMessage(R.string.dialog_permission_rationale_text)
+                        .setPositiveButton(R.string.button_ok) { _, _ ->
+                            launcher.launch(permission)
+                        }
+                        .show()
+
+                } else {
+                    // Request the permission
+                    launcher.launch(permission)
+                }
+            }
+        }
 }
