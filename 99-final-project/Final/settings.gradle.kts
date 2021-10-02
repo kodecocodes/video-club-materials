@@ -9,3 +9,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Club RW"
 include(":app")
+include(":agora-ktx")

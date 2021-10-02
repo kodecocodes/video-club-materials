@@ -50,6 +50,11 @@ import com.raywenderlich.android.club.MainActivity
 import com.raywenderlich.android.club.R
 import io.agora.rtc.IRtcEngineEventHandler
 import io.agora.rtc.RtcEngine
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
 
 class AudioService : Service() {
     companion object {
@@ -80,8 +85,12 @@ class AudioService : Service() {
     }
 
     private val binder by lazy { RtcBinderImpl() }
+    private val coroutineScope = CoroutineScope(CoroutineExceptionHandler(::onError))
+
+    // Connection to Agora RTC SDK for audio communication
     private var rtcEngine: RtcEngine? = null
 
+    // Persistent notification
     private val notificationManager by lazy { NotificationManagerCompat.from(this) }
     private val notificationChannelId by lazy { getString(R.string.notification_channel_audio) }
 
@@ -117,6 +126,13 @@ class AudioService : Service() {
         }
     }
 
+    /* Private */
+
+    private fun onError(context: CoroutineContext, error: Throwable) {
+        error.printStackTrace()
+        stop(this)
+    }
+
     private fun doStart() {
         // Start the service in foreground mode, connecting it to a persistent notification
         val notification = createNotification()
@@ -146,11 +162,15 @@ class AudioService : Service() {
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         notificationManager.cancel(NOTIFICATION_ID)
 
-        rtcEngine?.let { engine ->
-            println("Stop RTC Engine")
-            engine.leaveChannel()
-            RtcEngine.destroy()
-            rtcEngine = null
+        coroutineScope.launch {
+            rtcEngine?.let { engine ->
+                println("Stop RTC Engine")
+                engine.leaveChannel()
+                RtcEngine.destroy()
+                rtcEngine = null
+            }
+
+            coroutineScope.cancel()
         }
     }
 

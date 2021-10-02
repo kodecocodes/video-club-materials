@@ -34,17 +34,18 @@
 
 package com.raywenderlich.android.club
 
-import android.Manifest
 import android.content.pm.PackageManager.PERMISSION_GRANTED
 import android.os.Bundle
 import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.raywenderlich.android.club.service.AudioService
+import com.raywenderlich.android.club.rtm.Session
 import kotlinx.coroutines.launch
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -52,8 +53,9 @@ import kotlin.coroutines.suspendCoroutine
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
     // UI
-    private val joinButton by lazy { findViewById<Button>(R.id.button_join) }
-    private val leaveButton by lazy { findViewById<Button>(R.id.button_leave) }
+    private val inputUserName by lazy { findViewById<EditText>(R.id.input_user_name) }
+    private val buttonJoin by lazy { findViewById<Button>(R.id.button_join) }
+    private val buttonLeave by lazy { findViewById<Button>(R.id.button_leave) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Hide splash screen
@@ -61,8 +63,8 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         super.onCreate(savedInstanceState)
 
         // Setup listeners
-        joinButton.setOnClickListener { joinChannel() }
-        leaveButton.setOnClickListener { leaveChannel() }
+        buttonJoin.setOnClickListener { joinChannel() }
+        buttonLeave.setOnClickListener { leaveChannel() }
     }
 
     override fun onDestroy() {
@@ -72,24 +74,39 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
     /* Listeners */
 
+    private var rtmSession: Session? = null
+
     private fun joinChannel() =
         lifecycleScope.launch {
-            val hasPermission = awaitPermission(Manifest.permission.RECORD_AUDIO)
-            if (hasPermission) {
-                AudioService.start(this@MainActivity)
-
-                // TODO Toggle these automatically through a flow exposed by the service
-                joinButton.isEnabled = false
-                leaveButton.isEnabled = true
+            val userName = inputUserName.text.toString()
+            if (userName.isEmpty()) {
+                Toast.makeText(this@MainActivity, "User name required", Toast.LENGTH_SHORT).show()
+                return@launch
             }
+
+            // TODO MVVM
+            rtmSession = app.sessionManager.login(userName)
+
+            // TODO Toggle these automatically through a flow exposed by the service
+            buttonJoin.isEnabled = false
+            buttonLeave.isEnabled = true
+
+//            val hasPermission = awaitPermission(Manifest.permission.RECORD_AUDIO)
+//            if (hasPermission) {
+//                AudioService.start(this@MainActivity)
+//            }
         }
 
     private fun leaveChannel() {
-        AudioService.stop(this)
+        lifecycleScope.launch {
+            rtmSession?.logout()
 
-        // TODO Toggle these automatically through a flow exposed by the service
-        leaveButton.isEnabled = false
-        joinButton.isEnabled = true
+            // TODO Toggle these automatically through a flow exposed by the service
+            buttonLeave.isEnabled = false
+            buttonJoin.isEnabled = true
+
+//        AudioService.stop(this)
+        }
     }
 
     /* Private */

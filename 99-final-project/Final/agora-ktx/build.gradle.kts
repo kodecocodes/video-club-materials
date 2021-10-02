@@ -32,45 +32,22 @@
  * THE SOFTWARE.
  */
 
-import java.util.*
-
 plugins {
-    id("com.android.application")
+    id("com.android.library")
     kotlin("android")
 }
 
 val javaVersion = JavaVersion.VERSION_11
 
-// Access to private secrets and keys that shouldn't be checked into VCS
-val localProperties = rootProject.file("local.properties").reader().use { reader ->
-    Properties().also { it.load(reader) }
-}
-
 android {
     compileSdk = 31
 
     defaultConfig {
-        applicationId = "com.raywenderlich.android.club"
         minSdk = 23
         targetSdk = 31
-        versionCode = 1
-        versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // Add a config field for the Agora App ID
-        buildConfigField(
-            "String",
-            "AGORA_APP_ID",
-            "\"${localProperties.getProperty("AGORA_APP_ID")}\""
-        )
-
-        // Base URL for the authentication server
-        buildConfigField(
-            "String",
-            "SERVER_BASE_URL",
-            "\"${localProperties.getProperty("SERVER_BASE_URL")}\""
-        )
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     buildTypes {
@@ -82,30 +59,22 @@ android {
             )
         }
     }
-
     compileOptions {
         sourceCompatibility = javaVersion
         targetCompatibility = javaVersion
     }
-
     kotlinOptions {
         jvmTarget = javaVersion.toString()
     }
 }
 
 dependencies {
-    implementation(project(":agora-ktx"))
-
     implementation("androidx.core:core-ktx:1.6.0")
     implementation("androidx.appcompat:appcompat:1.3.1")
-    implementation("com.google.android.material:material:1.4.0")
-
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.3.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
 
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-moshi:2.9.0")
-    implementation("com.squareup.moshi:moshi-kotlin:1.12.0")
+    api("io.agora.rtc:voice-sdk:3.5.0.3")
+    api("io.agora.rtm:rtm-sdk:1.4.2")
 
     testImplementation("junit:junit:4.13.2")
 }
