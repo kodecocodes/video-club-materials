@@ -55,7 +55,8 @@ suspend fun RtmClient.awaitLogout() {
 
 suspend fun RtmClient.joinChannel(
     channelId: String,
-    onMessage: (RtmMessage, RtmChannelMember) -> Unit
+    onMessage: (RtmMessage, RtmChannelMember) -> Unit,
+    onMemberEvent: (RtmChannelMember, Boolean) -> Unit
 ): RtmChannel {
     // First create the channel...
     val channel = createChannel(channelId, object : RtmChannelListener {
@@ -64,19 +65,17 @@ suspend fun RtmClient.joinChannel(
         }
 
         override fun onMemberJoined(member: RtmChannelMember) {
-            println("onMemberJoined $member")
+            onMemberEvent(member, true)
         }
 
         override fun onMemberLeft(member: RtmChannelMember) {
-            println("onMemberLeft $member")
+            onMemberEvent(member, false)
         }
 
         override fun onMemberCountUpdated(count: Int) {
-            println("onMemberCountUpdated($count)")
         }
 
         override fun onAttributesUpdated(attributes: MutableList<RtmChannelAttribute>) {
-            println("onAttributesUpdated $attributes")
         }
 
         override fun onImageMessageReceived(message: RtmImageMessage, member: RtmChannelMember) {
@@ -90,4 +89,32 @@ suspend fun RtmClient.joinChannel(
     channel.awaitJoin()
 
     return channel
+}
+
+suspend fun RtmClient.awaitSendMessageToPeer(
+    userId: String,
+    message: RtmMessage,
+    options: SendMessageOptions = SendMessageOptions()
+) {
+    suspendCoroutine<Void> { continuation ->
+        sendMessageToPeer(userId, message, options, continuation.asResultCallback())
+    }
+}
+
+suspend fun RtmClient.awaitSendMessageToChannelMembers(
+    channel: RtmChannel,
+    message: RtmMessage,
+    options: SendMessageOptions = SendMessageOptions()
+) {
+    // Get all members of the channel
+    val members = suspendCoroutine<List<RtmChannelMember>> { continuation ->
+        channel.getMembers(continuation.asResultCallback())
+    }
+
+    // Send the message to all of them in parallel,
+    // wait until it was delivered to all of them
+    for (member in members) {
+        // A peer may be unreachable, but that's OK
+        runCatching { awaitSendMessageToPeer(member.userId, message, options) }
+    }
 }

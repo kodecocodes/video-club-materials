@@ -42,13 +42,6 @@ class App : Application() {
 
     // Management for authentication tokens and messages
     val sessionManager by lazy { SessionManager(this) }
-
-    override fun onCreate() {
-        super.onCreate()
-
-        // Initialize global dependencies
-
-    }
 }
 
 val Context.app: App get() = applicationContext as App

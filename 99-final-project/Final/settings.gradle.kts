@@ -3,6 +3,9 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+
+        // Agora RTM SDK is still served through JCenter
+        @Suppress("JcenterRepositoryObsolete")
         jcenter()
     }
 }

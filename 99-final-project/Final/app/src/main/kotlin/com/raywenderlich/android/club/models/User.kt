@@ -34,8 +34,18 @@
 
 package com.raywenderlich.android.club.models
 
-import com.squareup.moshi.JsonClass
+import androidx.annotation.IntRange
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
-data class TokenResponse(
-    val token: String
+@Serializable
+@JvmInline
+value class UserId(@IntRange(from = 0) val value: Int)
+
+@Serializable
+data class User(
+    @SerialName("id")
+    val id: UserId,
+    @SerialName("name")
+    val name: String
 )

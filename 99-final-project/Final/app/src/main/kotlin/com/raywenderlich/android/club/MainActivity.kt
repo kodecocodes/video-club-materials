@@ -34,37 +34,76 @@
 
 package com.raywenderlich.android.club
 
-import android.content.pm.PackageManager.PERMISSION_GRANTED
+import android.Manifest
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.raywenderlich.android.club.rtm.Session
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.raywenderlich.android.agora.rtm.ConnectionState
+import com.raywenderlich.android.club.models.Room
+import com.raywenderlich.android.club.rtc.AudioService
+import com.raywenderlich.android.club.rtm.LoginSession
+import com.raywenderlich.android.club.rtm.RoomSession
+import com.raywenderlich.android.club.utils.RequestPermission
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
+import kotlin.random.Random
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
+
+    private val requestPermission = RequestPermission(this)
+    private val sessionManager by lazy { app.sessionManager }
 
     // UI
     private val inputUserName by lazy { findViewById<EditText>(R.id.input_user_name) }
     private val buttonJoin by lazy { findViewById<Button>(R.id.button_join) }
     private val buttonLeave by lazy { findViewById<Button>(R.id.button_leave) }
+    private val buttonCreateRoom by lazy { findViewById<Button>(R.id.button_create_room) }
+    private val buttonCloseRoom by lazy { findViewById<Button>(R.id.button_close_room) }
+
+    private val listRooms by lazy { findViewById<RecyclerView>(R.id.list_rooms) }
+    private val listAdapter = RoomListAdapter()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Hide splash screen
         setTheme(R.style.AppTheme)
         super.onCreate(savedInstanceState)
 
+        // Assign random user name
+        inputUserName.setText((0..4).map {
+            Random.nextInt('a'.code, 'z'.code).toChar()
+        }.joinToString(separator = ""))
+
+        // Setup list adapter
+        listRooms.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
+        listRooms.adapter = listAdapter
+
         // Setup listeners
         buttonJoin.setOnClickListener { joinChannel() }
         buttonLeave.setOnClickListener { leaveChannel() }
+        buttonCreateRoom.setOnClickListener { createRoom() }
+        buttonCloseRoom.setOnClickListener { closeRoom() }
+
+        // Subscribe to connection states and update UI accordingly
+        sessionManager.connectionStateEvents
+            .onEach { updateUI(it) }
+            .launchIn(lifecycleScope)
+
+        // Keep list of open rooms up-to-date at all times
+        sessionManager.openRoomEvents
+            .onEach { println("Open Rooms: $it") }
+            .onEach { listAdapter.submitList(it) }
+            .launchIn(lifecycleScope)
+
+        // React to item clicks in the RecyclerView
+        listAdapter.itemClickEvents
+            .onEach { joinRoom(it) }
+            .launchIn(lifecycleScope)
     }
 
     override fun onDestroy() {
@@ -74,7 +113,8 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
     /* Listeners */
 
-    private var rtmSession: Session? = null
+    private var loginSession: LoginSession? = null
+    private var roomSession: RoomSession? = null
 
     private fun joinChannel() =
         lifecycleScope.launch {
@@ -85,57 +125,59 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
             }
 
             // TODO MVVM
-            rtmSession = app.sessionManager.login(userName)
-
-            // TODO Toggle these automatically through a flow exposed by the service
-            buttonJoin.isEnabled = false
-            buttonLeave.isEnabled = true
-
-//            val hasPermission = awaitPermission(Manifest.permission.RECORD_AUDIO)
-//            if (hasPermission) {
-//                AudioService.start(this@MainActivity)
-//            }
+            loginSession = app.sessionManager.login(userName)
         }
 
-    private fun leaveChannel() {
+    private fun leaveChannel() =
         lifecycleScope.launch {
-            rtmSession?.logout()
+            loginSession?.close()
+        }
+
+    private fun createRoom() =
+        lifecycleScope.launch {
+            val loginSession = loginSession ?: return@launch
+
+            val hasPermission = requestPermission(Manifest.permission.RECORD_AUDIO)
+            if (hasPermission) {
+                val roomSession = loginSession.createRoom()
+                AudioService.start(this@MainActivity, roomSession)
+
+                // TODO Toggle these automatically through a flow exposed by the service
+                buttonCreateRoom.isEnabled = false
+                buttonCloseRoom.isEnabled = true
+                this@MainActivity.roomSession = roomSession
+            }
+        }
+
+    private suspend fun joinRoom(room: Room) {
+        val loginSession = loginSession ?: return
+
+        val hasPermission = requestPermission(Manifest.permission.RECORD_AUDIO)
+        if (hasPermission) {
+            val roomSession = loginSession.joinRoom(room)
+            AudioService.start(this@MainActivity, roomSession)
 
             // TODO Toggle these automatically through a flow exposed by the service
-            buttonLeave.isEnabled = false
-            buttonJoin.isEnabled = true
-
-//        AudioService.stop(this)
+            buttonCreateRoom.isEnabled = false
+            buttonCloseRoom.isEnabled = true
+            this.roomSession = roomSession
         }
     }
 
+    private fun closeRoom() =
+        lifecycleScope.launch {
+            roomSession?.close()
+            AudioService.stop(this@MainActivity)
+
+            // TODO Toggle these automatically through a flow exposed by the service
+            buttonCreateRoom.isEnabled = true
+            buttonCloseRoom.isEnabled = false
+        }
+
     /* Private */
 
-    private suspend fun awaitPermission(permission: String) =
-        suspendCoroutine<Boolean> { continuation ->
-            if (ContextCompat.checkSelfPermission(this, permission) == PERMISSION_GRANTED) {
-                // Already have permission
-                continuation.resume(true)
-
-            } else {
-                val launcher = registerForActivityResult(RequestPermission()) { granted ->
-                    continuation.resume(granted)
-                }
-
-                if (ActivityCompat.shouldShowRequestPermissionRationale(this, permission)) {
-                    // Show explanation UI for the permission
-                    AlertDialog.Builder(this)
-                        .setTitle(R.string.dialog_permission_rationale_title)
-                        .setMessage(R.string.dialog_permission_rationale_text)
-                        .setPositiveButton(R.string.button_ok) { _, _ ->
-                            launcher.launch(permission)
-                        }
-                        .show()
-
-                } else {
-                    // Request the permission
-                    launcher.launch(permission)
-                }
-            }
-        }
+    private fun updateUI(connectionState: ConnectionState) {
+        buttonJoin.isEnabled = connectionState == ConnectionState.Disconnected
+        buttonLeave.isEnabled = connectionState == ConnectionState.Connected
+    }
 }

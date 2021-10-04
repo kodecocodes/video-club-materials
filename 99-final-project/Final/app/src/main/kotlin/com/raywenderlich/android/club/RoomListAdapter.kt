@@ -32,51 +32,53 @@
  * THE SOFTWARE.
  */
 
-plugins {
-    id("com.android.library")
-    kotlin("android")
-    kotlin("plugin.serialization")
-}
+package com.raywenderlich.android.club
 
-val javaVersion = JavaVersion.VERSION_11
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
+import com.raywenderlich.android.club.models.Room
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
-android {
-    compileSdk = 31
-
-    defaultConfig {
-        minSdk = 23
-        targetSdk = 31
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
+private val callback = object : DiffUtil.ItemCallback<Room>() {
+    override fun areItemsTheSame(oldItem: Room, newItem: Room): Boolean {
+        return oldItem == newItem
     }
 
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+    override fun areContentsTheSame(oldItem: Room, newItem: Room): Boolean {
+        return oldItem.roomId == newItem.roomId
+    }
+}
+
+class RoomListAdapter : ListAdapter<Room, RoomViewHolder>(callback) {
+
+    private val _itemClickEvents = MutableSharedFlow<Room>(extraBufferCapacity = 1)
+    val itemClickEvents: Flow<Room> = _itemClickEvents
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RoomViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.list_item_room, parent, false)
+        return RoomViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: RoomViewHolder, position: Int) {
+        val room = getItem(position)
+
+        holder.idText.text = room.roomId.toString()
+        holder.hostText.text = room.hostId.value.toString()
+
+        holder.itemView.setOnClickListener {
+            _itemClickEvents.tryEmit(room)
         }
     }
-    compileOptions {
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
-    }
-    kotlinOptions {
-        jvmTarget = javaVersion.toString()
-    }
 }
 
-dependencies {
-    implementation("androidx.core:core-ktx:1.6.0")
-    implementation("androidx.appcompat:appcompat:1.3.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
-
-    api("io.agora.rtc:voice-sdk:3.5.0.3")
-    api("io.agora.rtm:rtm-sdk:1.4.2")
-
-    testImplementation("junit:junit:4.13.2")
+class RoomViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    val idText = view.findViewById<TextView>(R.id.text_id)
+    val hostText = view.findViewById<TextView>(R.id.text_host)
 }

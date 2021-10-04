@@ -24,7 +24,7 @@
         </activity>
 
         <service
-            android:name=".service.AudioService"
+            android:name=".rtc.AudioService"
             android:exported="false"
             android:foregroundServiceType="microphone"
             tools:targetApi="q" />

@@ -34,11 +34,20 @@
 
 package com.raywenderlich.android.club.rtm
 
-import com.raywenderlich.android.club.models.TokenResponse
+import com.raywenderlich.android.club.models.RoomId
+import com.raywenderlich.android.club.models.UserId
+import com.raywenderlich.android.club.models.server.TokenResponse
 import retrofit2.http.GET
-import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface ServerApi {
-    @GET("/rtm_token/{user_id}")
-    suspend fun createRtmToken(@Path("user_id") userId: String): TokenResponse
+    @GET("/rtm_token")
+    suspend fun createRtmToken(@Query("user_name") userName: String): TokenResponse
+
+    @GET("/rtc_token")
+    suspend fun createRtcToken(
+        @Query("user_id") userId: UserId,
+        @Query("room_id") roomId: RoomId,
+        @Query("is_creator") isCreator: Boolean
+    ): TokenResponse
 }

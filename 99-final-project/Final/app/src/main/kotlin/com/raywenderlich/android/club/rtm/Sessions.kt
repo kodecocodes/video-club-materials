@@ -32,51 +32,28 @@
  * THE SOFTWARE.
  */
 
-plugins {
-    id("com.android.library")
-    kotlin("android")
-    kotlin("plugin.serialization")
+package com.raywenderlich.android.club.rtm
+
+import com.raywenderlich.android.club.models.Room
+import com.raywenderlich.android.club.models.Token
+import com.raywenderlich.android.club.models.User
+
+/**
+ * Session holder object returned by the [SessionManager]
+ * with a dedicated lifetime until [close] is called on it.
+ */
+interface Session {
+    suspend fun close()
 }
 
-val javaVersion = JavaVersion.VERSION_11
-
-android {
-    compileSdk = 31
-
-    defaultConfig {
-        minSdk = 23
-        targetSdk = 31
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-    compileOptions {
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
-    }
-    kotlinOptions {
-        jvmTarget = javaVersion.toString()
-    }
+interface LoginSession : Session {
+    suspend fun createRoom(): RoomSession
+    suspend fun joinRoom(room: Room): RoomSession
 }
 
-dependencies {
-    implementation("androidx.core:core-ktx:1.6.0")
-    implementation("androidx.appcompat:appcompat:1.3.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
-
-    api("io.agora.rtc:voice-sdk:3.5.0.3")
-    api("io.agora.rtm:rtm-sdk:1.4.2")
-
-    testImplementation("junit:junit:4.13.2")
+interface RoomSession : Session {
+    val user: User
+    val room: Room
+    val token: Token
+    val isCreator: Boolean
 }

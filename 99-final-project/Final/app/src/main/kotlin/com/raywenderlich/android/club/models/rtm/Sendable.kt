@@ -32,15 +32,55 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.rtm
+package com.raywenderlich.android.club.models.rtm
 
-import com.raywenderlich.android.agora.rtm.awaitLeave
-import io.agora.rtm.RtmChannel
+import com.raywenderlich.android.club.models.Room
+import com.raywenderlich.android.club.models.RoomList
+import io.agora.rtm.RtmClient
+import io.agora.rtm.RtmMessage
+import kotlinx.serialization.*
+import kotlinx.serialization.json.Json
+import kotlin.reflect.KClass
 
-class Session(private val lobbyChannel: RtmChannel) {
+/**
+ * Helper functions for creating [Sendable] messages
+ * from the context of a RTM client.
+ */
+@OptIn(InternalSerializationApi::class)
+fun RtmClient.createSendableMessage(kind: Sendable.Kind, bodyText: String): RtmMessage {
+    val sendable = Sendable(kind, bodyText)
+    val encoded = Json.encodeToString(sendable)
+    return createMessage(encoded)
+}
 
-    suspend fun logout() {
-        lobbyChannel.awaitLeave()
-        lobbyChannel.release()
+/**
+ * Base class for messages that can be sent to peers with the Agora RTM SDK.
+ * They are serialized to JSON format before sending and will be re-assembled
+ * on the receiving end. The [kind] of a sendable message can be used
+ * to determine the reaction of the receiver
+ */
+@Serializable
+data class Sendable(
+    @SerialName("kind")
+    val kind: Kind,
+    @SerialName("body")
+    private val bodyText: String
+) {
+    @Serializable
+    enum class Kind(val bodyClass: KClass<out Any>) {
+        @SerialName("room-opened")
+        RoomOpened(Room::class),
+
+        @SerialName("room-closed")
+        RoomClosed(Room::class),
+
+        @SerialName("room-list")
+        RoomList(com.raywenderlich.android.club.models.RoomList::class)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    @OptIn(InternalSerializationApi::class)
+    fun <T : Any> decodeBody(): T {
+        return Json.decodeFromString(kind.bodyClass.serializer(), bodyText) as T
     }
 }

@@ -32,7 +32,7 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.service
+package com.raywenderlich.android.club.rtc
 
 import android.app.*
 import android.content.Context
@@ -48,7 +48,11 @@ import androidx.core.content.ContextCompat
 import com.raywenderlich.android.club.BuildConfig
 import com.raywenderlich.android.club.MainActivity
 import com.raywenderlich.android.club.R
+import com.raywenderlich.android.club.rtm.RoomSession
+import io.agora.rtc.Constants
 import io.agora.rtc.IRtcEngineEventHandler
+import io.agora.rtc.IRtcEngineEventHandler.ClientRole.CLIENT_ROLE_AUDIENCE
+import io.agora.rtc.IRtcEngineEventHandler.ClientRole.CLIENT_ROLE_BROADCASTER
 import io.agora.rtc.RtcEngine
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -59,27 +63,40 @@ import kotlin.coroutines.CoroutineContext
 class AudioService : Service() {
     companion object {
         private const val NOTIFICATION_ID = 1
-        private const val COMMAND_STOP = "stop"
 
-        // TODO
-        //  - Web app for testing: https://webdemo.agora.io/agora-websdk-api-example-4.x/basicVideoCall/index.html
-        //  - Temp tokens expire after 24 hours! Need to provide own auth server apparently
-        private const val appId = BuildConfig.AGORA_APP_ID
-        private const val channelName = "test-channel"
-        private const val tempToken = "get-one-from-the-dashboard"
+        private const val EXTRA_COMMAND = "command"
+        private const val EXTRA_ROOM_ID = "room-id"
+        private const val EXTRA_TOKEN = "token"
+        private const val EXTRA_USER_ID = "user-id"
+        private const val EXTRA_IS_CREATOR = "is-creator"
+
+        private const val COMMAND_START = "start"
+        private const val COMMAND_STOP = "stop"
 
         private fun intent(context: Context): Intent =
             Intent(context, AudioService::class.java)
 
-        fun start(context: Context) {
-            // Start the RTC service in foreground
-            ContextCompat.startForegroundService(context, intent(context))
+        /**
+         * Start the audio service or switch to the given [session].
+         * This will start the service with a persistent notification in the foreground.
+         */
+        fun start(context: Context, session: RoomSession) {
+            ContextCompat.startForegroundService(context, intent(context).apply {
+                putExtra(EXTRA_COMMAND, COMMAND_START)
+                putExtra(EXTRA_ROOM_ID, session.room.roomId.value)
+                putExtra(EXTRA_TOKEN, session.token.value)
+                putExtra(EXTRA_USER_ID, session.user.id.value)
+                putExtra(EXTRA_IS_CREATOR, session.isCreator)
+            })
         }
 
+        /**
+         * Stop the current audio service session
+         */
         fun stop(context: Context) {
             // Send a command to the service to make it stop itself
             context.startService(intent(context).apply {
-                putExtra(COMMAND_STOP, true)
+                putExtra(EXTRA_COMMAND, COMMAND_STOP)
             })
         }
     }
@@ -114,15 +131,26 @@ class AudioService : Service() {
         }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         // This is called whenever the service receives an intent.
         // Check if the 'stop' command is sent and handle it accordingly
-        return if (intent?.getBooleanExtra(COMMAND_STOP, false) == true) {
-            doStop(startId)
-            START_NOT_STICKY
-        } else {
-            doStart()
-            START_STICKY
+        return when (intent.getStringExtra(EXTRA_COMMAND)) {
+            COMMAND_START -> {
+                val roomId = requireNotNull(intent.getStringExtra(EXTRA_ROOM_ID))
+                val token = requireNotNull(intent.getStringExtra(EXTRA_TOKEN))
+                val userId = intent.getIntExtra(EXTRA_USER_ID, 0)
+                val isCreator = intent.getBooleanExtra(EXTRA_IS_CREATOR, false)
+                doStart(roomId, token, userId, isCreator)
+                START_STICKY
+            }
+            COMMAND_STOP -> {
+                doStop(startId)
+                START_NOT_STICKY
+            }
+            else -> {
+                println("Unknown command for AudioService: $intent")
+                super.onStartCommand(intent, flags, startId)
+            }
         }
     }
 
@@ -133,7 +161,7 @@ class AudioService : Service() {
         stop(this)
     }
 
-    private fun doStart() {
+    private fun doStart(roomId: String, token: String, userId: Int, isCreator: Boolean) {
         // Start the service in foreground mode, connecting it to a persistent notification
         val notification = createNotification()
         if (Build.VERSION.SDK_INT >= 30) {
@@ -147,12 +175,28 @@ class AudioService : Service() {
         }
 
         // Initialize and join channel
-        println("Start RTC Engine")
+        println("Start RTC Engine for room $roomId with token $token")
         rtcEngine =
-            RtcEngine.create(this, appId, object : IRtcEngineEventHandler() {
-                // TODO
-            })?.also {
-                it.joinChannel(tempToken, channelName, "", 0)
+            RtcEngine.create(this, BuildConfig.AGORA_APP_ID, object : IRtcEngineEventHandler() {
+
+                override fun onError(err: Int) {
+                    println("onError: $err ${RtcEngine.getErrorDescription(err)}()")
+                }
+
+                override fun onConnectionStateChanged(state: Int, reason: Int) {
+                    println("onConnectionStateChanged($state, $reason)")
+                }
+            })?.also { engine ->
+                engine.setChannelProfile(Constants.CHANNEL_PROFILE_LIVE_BROADCASTING)
+                engine.setClientRole(
+                    if (isCreator) {
+                        CLIENT_ROLE_BROADCASTER
+                    } else {
+                        CLIENT_ROLE_AUDIENCE
+                    }
+                )
+                val result = engine.joinChannel(token, roomId, "", userId)
+                println("joinChannel() result: $result")
             }
     }
 

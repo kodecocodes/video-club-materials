@@ -32,51 +32,19 @@
  * THE SOFTWARE.
  */
 
-plugins {
-    id("com.android.library")
-    kotlin("android")
-    kotlin("plugin.serialization")
-}
+package com.raywenderlich.android.agora.rtm
 
-val javaVersion = JavaVersion.VERSION_11
+import io.agora.rtm.RtmStatusCode
 
-android {
-    compileSdk = 31
+enum class ConnectionState(private val rtmCode: Int) {
+    Connecting(RtmStatusCode.ConnectionState.CONNECTION_STATE_CONNECTING),
+    Connected(RtmStatusCode.ConnectionState.CONNECTION_STATE_CONNECTED),
+    Reconnecting(RtmStatusCode.ConnectionState.CONNECTION_STATE_RECONNECTING),
+    Disconnected(RtmStatusCode.ConnectionState.CONNECTION_STATE_DISCONNECTED),
+    Aborted(RtmStatusCode.ConnectionState.CONNECTION_STATE_ABORTED);
 
-    defaultConfig {
-        minSdk = 23
-        targetSdk = 31
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
+    companion object {
+        fun fromCode(value: Int): ConnectionState =
+            values().firstOrNull { it.rtmCode == value } ?: Aborted
     }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-    compileOptions {
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
-    }
-    kotlinOptions {
-        jvmTarget = javaVersion.toString()
-    }
-}
-
-dependencies {
-    implementation("androidx.core:core-ktx:1.6.0")
-    implementation("androidx.appcompat:appcompat:1.3.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
-
-    api("io.agora.rtc:voice-sdk:3.5.0.3")
-    api("io.agora.rtm:rtm-sdk:1.4.2")
-
-    testImplementation("junit:junit:4.13.2")
 }

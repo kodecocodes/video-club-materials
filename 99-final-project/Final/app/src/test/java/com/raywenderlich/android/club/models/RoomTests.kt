@@ -32,51 +32,26 @@
  * THE SOFTWARE.
  */
 
-plugins {
-    id("com.android.library")
-    kotlin("android")
-    kotlin("plugin.serialization")
-}
+package com.raywenderlich.android.club.models
 
-val javaVersion = JavaVersion.VERSION_11
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import org.junit.Test
+import kotlin.test.assertEquals
 
-android {
-    compileSdk = 31
+class RoomTests {
 
-    defaultConfig {
-        minSdk = 23
-        targetSdk = 31
+    @Test
+    fun `test serialization round-trip`() {
+        val raw = """{"host_id":1234,"room_id":"room1"}"""
+        val room = Json.decodeFromString<Room>(raw)
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
+        assertEquals(UserId(1234u), room.hostId)
+        assertEquals(RoomId("room1"), room.roomId)
+
+        val raw2 = Json.encodeToString(room)
+
+        assertEquals(raw2, raw)
     }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-    }
-    compileOptions {
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
-    }
-    kotlinOptions {
-        jvmTarget = javaVersion.toString()
-    }
-}
-
-dependencies {
-    implementation("androidx.core:core-ktx:1.6.0")
-    implementation("androidx.appcompat:appcompat:1.3.1")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
-
-    api("io.agora.rtc:voice-sdk:3.5.0.3")
-    api("io.agora.rtm:rtm-sdk:1.4.2")
-
-    testImplementation("junit:junit:4.13.2")
 }
