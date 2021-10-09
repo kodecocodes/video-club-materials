@@ -32,43 +32,50 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.models
+package com.raywenderlich.android.club.controllers
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import android.util.Log
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import com.raywenderlich.android.club.BuildConfig
+import com.raywenderlich.android.club.models.RoomId
+import com.raywenderlich.android.club.models.UserId
+import com.raywenderlich.android.club.models.server.TokenResponse
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import okhttp3.logging.HttpLoggingInterceptor.Level.BODY
+import retrofit2.Retrofit
+import retrofit2.create
+import retrofit2.http.GET
+import retrofit2.http.Query
 
-@Serializable
-@JvmInline
-value class RoomId(val value: String)
+interface ServerApi {
+    companion object {
+        @OptIn(ExperimentalSerializationApi::class)
+        fun create(baseServerUrl: String = BuildConfig.SERVER_BASE_URL) =
+            Retrofit.Builder()
+                .baseUrl(baseServerUrl)
+                .client(
+                    OkHttpClient.Builder()
+                        .addInterceptor(HttpLoggingInterceptor {
+                            Log.i("OkHttp", it)
+                        }.setLevel(BODY))
+                        .build()
+                )
+                .addConverterFactory(Json.asConverterFactory("application/json".toMediaType()))
+                .build()
+                .create<ServerApi>()
+    }
 
-@Serializable
-data class Room(
-    @SerialName("host_id")
-    val hostId: UserId,
-    @SerialName("room_id")
-    val roomId: RoomId,
-)
+    @GET("/rtm_token")
+    suspend fun createRtmToken(@Query("user_name") userName: String): TokenResponse
 
-@Serializable
-data class RoomList(
-    @SerialName("rooms")
-    val rooms: List<Room>
-)
-
-@Serializable
-data class RoomInfo(
-    @SerialName("room_id")
-    val roomId: RoomId,
-    @SerialName("token")
-    val token: Token,
-    @SerialName("user_id")
-    val userId: UserId,
-    @SerialName("is_broadcaster")
-    val isBroadcaster: Boolean
-)
-
-data class RoomSession(
-    val info: RoomInfo,
-    val memberEvents: Flow<List<String>>
-)
+    @GET("/rtc_token")
+    suspend fun createRtcToken(
+        @Query("user_id") userId: UserId,
+        @Query("room_id") roomId: RoomId,
+        @Query("is_creator") isBroadcaster: Boolean
+    ): TokenResponse
+}

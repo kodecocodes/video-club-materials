@@ -32,7 +32,7 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club
+package com.raywenderlich.android.club.ui
 
 import android.view.LayoutInflater
 import android.view.View
@@ -41,6 +41,7 @@ import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import com.raywenderlich.android.club.R
 import com.raywenderlich.android.club.models.Room
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow

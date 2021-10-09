@@ -32,43 +32,33 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.models
+package com.raywenderlich.android.agora.rtm
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import io.agora.rtm.*
 
-@Serializable
-@JvmInline
-value class RoomId(val value: String)
+/**
+ * An empty implementation of the [RtmChannelListener] interface.
+ * By using this, callers don't need to implement all methods if they only need a few.
+ */
+abstract class DefaultRtmChannelListener : RtmChannelListener {
+    override fun onMemberCountUpdated(memberCount: Int) {
+    }
 
-@Serializable
-data class Room(
-    @SerialName("host_id")
-    val hostId: UserId,
-    @SerialName("room_id")
-    val roomId: RoomId,
-)
+    override fun onAttributesUpdated(attributeList: MutableList<RtmChannelAttribute>) {
+    }
 
-@Serializable
-data class RoomList(
-    @SerialName("rooms")
-    val rooms: List<Room>
-)
+    override fun onMessageReceived(message: RtmMessage, member: RtmChannelMember) {
+    }
 
-@Serializable
-data class RoomInfo(
-    @SerialName("room_id")
-    val roomId: RoomId,
-    @SerialName("token")
-    val token: Token,
-    @SerialName("user_id")
-    val userId: UserId,
-    @SerialName("is_broadcaster")
-    val isBroadcaster: Boolean
-)
+    override fun onImageMessageReceived(message: RtmImageMessage, member: RtmChannelMember) {
+    }
 
-data class RoomSession(
-    val info: RoomInfo,
-    val memberEvents: Flow<List<String>>
-)
+    override fun onFileMessageReceived(message: RtmFileMessage, member: RtmChannelMember) {
+    }
+
+    override fun onMemberJoined(member: RtmChannelMember) {
+    }
+
+    override fun onMemberLeft(member: RtmChannelMember) {
+    }
+}

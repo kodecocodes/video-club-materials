@@ -32,28 +32,42 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.rtm
+package com.raywenderlich.android.agora.rtm
 
-import com.raywenderlich.android.club.models.Room
-import com.raywenderlich.android.club.models.Token
-import com.raywenderlich.android.club.models.User
+import io.agora.rtm.*
 
 /**
- * Session holder object returned by the [SessionManager]
- * with a dedicated lifetime until [close] is called on it.
+ * An empty implementation of the [RtmClientListener] interface.
+ * By using this, callers don't need to implement all methods if they only need a few.
  */
-interface Session {
-    suspend fun close()
-}
+abstract class DefaultRtmClientListener : RtmClientListener {
+    override fun onConnectionStateChanged(state: Int, reason: Int) {
+    }
 
-interface LoginSession : Session {
-    suspend fun createRoom(): RoomSession
-    suspend fun joinRoom(room: Room): RoomSession
-}
+    override fun onMessageReceived(message: RtmMessage, peerId: String) {
+    }
 
-interface RoomSession : Session {
-    val user: User
-    val room: Room
-    val token: Token
-    val isCreator: Boolean
+    override fun onImageMessageReceivedFromPeer(message: RtmImageMessage, peerId: String) {
+    }
+
+    override fun onFileMessageReceivedFromPeer(message: RtmFileMessage, peerId: String) {
+    }
+
+    override fun onMediaUploadingProgress(
+        progress: RtmMediaOperationProgress,
+        requestId: Long
+    ) {
+    }
+
+    override fun onMediaDownloadingProgress(
+        progress: RtmMediaOperationProgress,
+        requestId: Long
+    ) {
+    }
+
+    override fun onTokenExpired() {
+    }
+
+    override fun onPeersOnlineStatusChanged(peersStatus: MutableMap<String, Int>) {
+    }
 }

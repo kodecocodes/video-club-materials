@@ -32,43 +32,24 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.models
+package com.raywenderlich.android.club.utils
 
-import kotlinx.coroutines.flow.Flow
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.raywenderlich.android.club.ui.MainViewModel
+import com.raywenderlich.android.club.app
 
-@Serializable
-@JvmInline
-value class RoomId(val value: String)
+/**
+ * Create a ViewModel for the Main screen.
+ */
+@Suppress("UNCHECKED_CAST")
+fun mainViewModel(activity: ComponentActivity): MainViewModel {
+    val factory = object : ViewModelProvider.Factory {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+            return MainViewModel(activity.app.sessionManager) as T
+        }
+    }
 
-@Serializable
-data class Room(
-    @SerialName("host_id")
-    val hostId: UserId,
-    @SerialName("room_id")
-    val roomId: RoomId,
-)
-
-@Serializable
-data class RoomList(
-    @SerialName("rooms")
-    val rooms: List<Room>
-)
-
-@Serializable
-data class RoomInfo(
-    @SerialName("room_id")
-    val roomId: RoomId,
-    @SerialName("token")
-    val token: Token,
-    @SerialName("user_id")
-    val userId: UserId,
-    @SerialName("is_broadcaster")
-    val isBroadcaster: Boolean
-)
-
-data class RoomSession(
-    val info: RoomInfo,
-    val memberEvents: Flow<List<String>>
-)
+    return ViewModelProvider(activity, factory).get(MainViewModel::class.java)
+}

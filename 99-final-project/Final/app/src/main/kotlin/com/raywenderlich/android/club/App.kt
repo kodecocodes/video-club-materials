@@ -36,11 +36,9 @@ package com.raywenderlich.android.club
 
 import android.app.Application
 import android.content.Context
-import com.raywenderlich.android.club.rtm.SessionManager
+import com.raywenderlich.android.club.controllers.SessionManager
 
 class App : Application() {
-
-    // Management for authentication tokens and messages
     val sessionManager by lazy { SessionManager(this) }
 }
 

@@ -32,22 +32,50 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.rtm
+package com.raywenderlich.android.club.ui
 
-import com.raywenderlich.android.club.models.RoomId
-import com.raywenderlich.android.club.models.UserId
-import com.raywenderlich.android.club.models.server.TokenResponse
-import retrofit2.http.GET
-import retrofit2.http.Query
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
+import androidx.recyclerview.widget.RecyclerView
+import com.raywenderlich.android.club.R
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
-interface ServerApi {
-    @GET("/rtm_token")
-    suspend fun createRtmToken(@Query("user_name") userName: String): TokenResponse
+private val callback = object : DiffUtil.ItemCallback<String>() {
+    override fun areItemsTheSame(oldItem: String, newItem: String): Boolean {
+        return oldItem == newItem
+    }
 
-    @GET("/rtc_token")
-    suspend fun createRtcToken(
-        @Query("user_id") userId: UserId,
-        @Query("room_id") roomId: RoomId,
-        @Query("is_creator") isCreator: Boolean
-    ): TokenResponse
+    override fun areContentsTheSame(oldItem: String, newItem: String): Boolean {
+        return oldItem == newItem
+    }
+}
+
+class UserListAdapter : ListAdapter<String, UserViewHolder>(callback) {
+
+    private val _itemClickEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val itemClickEvents: Flow<String> = _itemClickEvents
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UserViewHolder {
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.list_item_user, parent, false)
+        return UserViewHolder(view)
+    }
+
+    override fun onBindViewHolder(holder: UserViewHolder, position: Int) {
+        val user = getItem(position)
+
+        holder.nameText.text = user
+        holder.itemView.setOnClickListener { _itemClickEvents.tryEmit(user) }
+    }
+}
+
+class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    val nameText = view.findViewById<TextView>(R.id.user_name)
+    val image = view.findViewById<ImageView>(R.id.user_image)
 }

@@ -35,6 +35,7 @@
 package com.raywenderlich.android.agora.rtm
 
 import io.agora.rtm.RtmChannel
+import io.agora.rtm.RtmChannelMember
 import kotlin.coroutines.suspendCoroutine
 
 /**
@@ -52,3 +53,8 @@ suspend fun RtmChannel.awaitLeave() {
         leave(continuation.asResultCallback())
     }
 }
+
+suspend fun RtmChannel.awaitGetMembers(): List<RtmChannelMember> =
+    suspendCoroutine { continuation ->
+        getMembers(continuation.asResultCallback())
+    }

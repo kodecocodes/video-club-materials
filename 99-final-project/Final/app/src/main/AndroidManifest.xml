@@ -14,7 +14,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.MainActivity"
             android:exported="true"
             android:theme="@style/SplashTheme">
             <intent-filter>
@@ -24,7 +24,7 @@
         </activity>
 
         <service
-            android:name=".rtc.AudioService"
+            android:name=".controllers.AudioService"
             android:exported="false"
             android:foregroundServiceType="microphone"
             tools:targetApi="q" />

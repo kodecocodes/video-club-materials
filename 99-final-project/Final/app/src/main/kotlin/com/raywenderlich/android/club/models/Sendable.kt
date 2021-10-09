@@ -32,10 +32,11 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.models.rtm
+package com.raywenderlich.android.club.models
 
 import com.raywenderlich.android.club.models.Room
 import com.raywenderlich.android.club.models.RoomList
+import com.raywenderlich.android.club.models.UserRoleChanged
 import io.agora.rtm.RtmClient
 import io.agora.rtm.RtmMessage
 import kotlinx.serialization.*
@@ -75,7 +76,10 @@ data class Sendable(
         RoomClosed(Room::class),
 
         @SerialName("room-list")
-        RoomList(com.raywenderlich.android.club.models.RoomList::class)
+        RoomList(com.raywenderlich.android.club.models.RoomList::class),
+
+        @SerialName("role-changed")
+        RoleChanged(UserRoleChanged::class),
     }
 
     @Suppress("UNCHECKED_CAST")

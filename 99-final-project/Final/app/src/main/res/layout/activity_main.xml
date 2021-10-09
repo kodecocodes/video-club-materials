@@ -8,36 +8,66 @@
         android:id="@+id/input_user_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Your User Name"/>
+        android:hint="Your User Name" />
 
-    <Button
-        android:id="@+id/button_join"
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/button_login"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Login" />
+
+        <Button
+            android:id="@+id/button_logout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:enabled="false"
+            android:text="Logout" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/button_create_room"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Create Room" />
+
+        <Button
+            android:id="@+id/button_leave_room"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:enabled="false"
+            android:text="Leave Room" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/text_room_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Join" />
+        android:layout_marginTop="16dp" />
 
-    <Button
-        android:id="@+id/button_leave"
-        android:layout_width="wrap_content"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/list_room_users"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:enabled="false"
-        android:text="Leave" />
-
-    <Button
-        android:id="@+id/button_create_room"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Create Room"/>
-
-    <Button
-        android:id="@+id/button_close_room"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:enabled="false"
-        android:text="Close Room"/>
+        android:background="#eee"
+        android:padding="16dp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list_rooms"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:layout_weight="1"
+        android:padding="16dp" />
 </LinearLayout>

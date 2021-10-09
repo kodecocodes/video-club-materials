@@ -53,41 +53,12 @@ suspend fun RtmClient.awaitLogout() {
     }
 }
 
-suspend fun RtmClient.joinChannel(
+suspend fun RtmClient.awaitJoinChannel(
     channelId: String,
-    onMessage: (RtmMessage, RtmChannelMember) -> Unit,
-    onMemberEvent: (RtmChannelMember, Boolean) -> Unit
+    listener: RtmChannelListener
 ): RtmChannel {
-    // First create the channel...
-    val channel = createChannel(channelId, object : RtmChannelListener {
-        override fun onMessageReceived(message: RtmMessage, member: RtmChannelMember) {
-            onMessage(message, member)
-        }
-
-        override fun onMemberJoined(member: RtmChannelMember) {
-            onMemberEvent(member, true)
-        }
-
-        override fun onMemberLeft(member: RtmChannelMember) {
-            onMemberEvent(member, false)
-        }
-
-        override fun onMemberCountUpdated(count: Int) {
-        }
-
-        override fun onAttributesUpdated(attributes: MutableList<RtmChannelAttribute>) {
-        }
-
-        override fun onImageMessageReceived(message: RtmImageMessage, member: RtmChannelMember) {
-        }
-
-        override fun onFileMessageReceived(p0: RtmFileMessage?, p1: RtmChannelMember?) {
-        }
-    })
-
-    // ...and then join it
+    val channel = createChannel(channelId, listener)
     channel.awaitJoin()
-
     return channel
 }
 
@@ -106,10 +77,7 @@ suspend fun RtmClient.awaitSendMessageToChannelMembers(
     message: RtmMessage,
     options: SendMessageOptions = SendMessageOptions()
 ) {
-    // Get all members of the channel
-    val members = suspendCoroutine<List<RtmChannelMember>> { continuation ->
-        channel.getMembers(continuation.asResultCallback())
-    }
+    val members = channel.awaitGetMembers()
 
     // Send the message to all of them in parallel,
     // wait until it was delivered to all of them
@@ -117,4 +85,22 @@ suspend fun RtmClient.awaitSendMessageToChannelMembers(
         // A peer may be unreachable, but that's OK
         runCatching { awaitSendMessageToPeer(member.userId, message, options) }
     }
+}
+
+fun RtmClient.sendMessageToChannelMembers(
+    channel: RtmChannel,
+    message: RtmMessage,
+    options: SendMessageOptions = SendMessageOptions()
+) {
+    channel.getMembers(object : ResultCallback<List<RtmChannelMember>> {
+        override fun onSuccess(members: List<RtmChannelMember>) {
+            for (member in members) {
+                // A peer may be unreachable, but that's OK
+                runCatching { sendMessageToPeer(member.userId, message, options, null) }
+            }
+        }
+
+        override fun onFailure(p0: ErrorInfo?) {
+        }
+    })
 }

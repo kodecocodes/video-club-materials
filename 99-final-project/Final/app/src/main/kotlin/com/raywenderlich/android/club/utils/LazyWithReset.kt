@@ -32,14 +32,58 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.models.server
+@file:Suppress("LocalVariableName")
 
-import com.raywenderlich.android.club.models.Token
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+package com.raywenderlich.android.club.utils
 
-@Serializable
-data class TokenResponse(
-    @SerialName("token")
-    val token: Token
-)
+/**
+ * A custom property delegate for lazy evaluation with the added ability to reset its value.
+ */
+fun <T> lazyWithReset(lock: Any? = null, initializer: () -> T): LazyWithReset<T> =
+    LazyWithResetImpl(initializer, lock)
+
+interface LazyWithReset<out T> : Lazy<T> {
+    fun reset()
+}
+
+private object Uninitialized
+
+// Copied from LazyJVM.kt's SynchronizedLazyImpl type,
+// but extended so that the value can be reset on demand
+private class LazyWithResetImpl<out T>(initializer: () -> T, lock: Any? = null) : LazyWithReset<T> {
+    private var initializer: (() -> T)? = initializer
+
+    @Volatile
+    private var _value: Any? = Uninitialized
+    private val lock = lock ?: this
+
+    override val value: T
+        get() {
+            val _v1 = _value
+            if (_v1 !== Uninitialized) {
+                @Suppress("UNCHECKED_CAST")
+                return _v1 as T
+            }
+
+            return synchronized(lock) {
+                val _v2 = _value
+                if (_v2 !== Uninitialized) {
+                    @Suppress("UNCHECKED_CAST") (_v2 as T)
+                } else {
+                    val typedValue = initializer!!()
+                    _value = typedValue
+                    initializer = null
+                    typedValue
+                }
+            }
+        }
+
+    override fun isInitialized(): Boolean = _value !== Uninitialized
+
+    override fun toString(): String =
+        if (isInitialized()) value.toString() else "Lazy value not initialized yet."
+
+    override fun reset() {
+        _value = Uninitialized
+    }
+}

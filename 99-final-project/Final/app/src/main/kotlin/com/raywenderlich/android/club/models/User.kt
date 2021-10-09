@@ -47,5 +47,15 @@ data class User(
     @SerialName("id")
     val id: UserId,
     @SerialName("name")
-    val name: String
+    val name: String,
+    @SerialName("rtm_token")
+    val rtmToken: Token
+)
+
+@Serializable
+data class UserRoleChanged(
+    @SerialName("room_id")
+    val roomId: RoomId,
+    @SerialName("is_broadcaster")
+    val isBroadcaster: Boolean
 )

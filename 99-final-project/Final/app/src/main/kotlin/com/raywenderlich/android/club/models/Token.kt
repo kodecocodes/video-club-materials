@@ -34,7 +34,14 @@
 
 package com.raywenderlich.android.club.models
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+
+@Serializable
+data class TokenResponse(
+    @SerialName("token")
+    val token: Token
+)
 
 @Serializable
 @JvmInline
