@@ -40,6 +40,7 @@ import kotlin.coroutines.suspendCoroutine
 /**
  * Suspending variants of several methods of the [RtmClient] class.
  */
+val NO_OPTIONS = SendMessageOptions()
 
 suspend fun RtmClient.awaitLogin(token: String, userId: String) {
     suspendCoroutine<Void> { continuation ->
@@ -65,7 +66,7 @@ suspend fun RtmClient.awaitJoinChannel(
 suspend fun RtmClient.awaitSendMessageToPeer(
     userId: String,
     message: RtmMessage,
-    options: SendMessageOptions = SendMessageOptions()
+    options: SendMessageOptions = NO_OPTIONS
 ) {
     suspendCoroutine<Void> { continuation ->
         sendMessageToPeer(userId, message, options, continuation.asResultCallback())
@@ -75,7 +76,7 @@ suspend fun RtmClient.awaitSendMessageToPeer(
 suspend fun RtmClient.awaitSendMessageToChannelMembers(
     channel: RtmChannel,
     message: RtmMessage,
-    options: SendMessageOptions = SendMessageOptions()
+    options: SendMessageOptions = NO_OPTIONS
 ) {
     val members = channel.awaitGetMembers()
 
@@ -90,7 +91,7 @@ suspend fun RtmClient.awaitSendMessageToChannelMembers(
 fun RtmClient.sendMessageToChannelMembers(
     channel: RtmChannel,
     message: RtmMessage,
-    options: SendMessageOptions = SendMessageOptions()
+    options: SendMessageOptions = NO_OPTIONS
 ) {
     channel.getMembers(object : ResultCallback<List<RtmChannelMember>> {
         override fun onSuccess(members: List<RtmChannelMember>) {
@@ -104,3 +105,14 @@ fun RtmClient.sendMessageToChannelMembers(
         }
     })
 }
+
+suspend fun RtmClient.awaitAddOrUpdateLocalUserAttributes(attributes: List<RtmAttribute>) {
+    suspendCoroutine<Void> { continuation ->
+        addOrUpdateLocalUserAttributes(attributes, continuation.asResultCallback())
+    }
+}
+
+suspend fun RtmClient.awaitGetUserAttributes(peerId: String): List<RtmAttribute> =
+    suspendCoroutine { continuation ->
+        getUserAttributes(peerId, continuation.asResultCallback())
+    }

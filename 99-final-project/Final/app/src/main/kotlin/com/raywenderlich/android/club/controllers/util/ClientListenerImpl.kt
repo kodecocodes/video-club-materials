@@ -32,59 +32,42 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.models
+package com.raywenderlich.android.club.controllers.util
 
-import com.raywenderlich.android.club.models.Room
-import com.raywenderlich.android.club.models.RoomList
-import com.raywenderlich.android.club.models.UserRoleChanged
-import io.agora.rtm.RtmClient
+import com.raywenderlich.android.agora.rtm.ConnectionState
+import com.raywenderlich.android.agora.rtm.DefaultRtmClientListener
+import com.raywenderlich.android.club.models.Sendable
 import io.agora.rtm.RtmMessage
-import kotlinx.serialization.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import kotlin.reflect.KClass
 
 /**
- * Helper functions for creating [Sendable] messages
- * from the context of a RTM client.
+ * A special variant of Agora's RtmClientListener interface which invokes callbacks
+ * related to incoming messages using the given [coroutineScope], allowing for them
+ * to be suspending functions.
  */
-@OptIn(InternalSerializationApi::class)
-fun RtmClient.createSendableMessage(kind: Sendable.Kind, bodyText: String): RtmMessage {
-    val sendable = Sendable(kind, bodyText)
-    val encoded = Json.encodeToString(sendable)
-    return createMessage(encoded)
-}
+class ClientListenerImpl(
+    private val coroutineScope: CoroutineScope,
+    private val onConnectionState: (ConnectionState) -> Unit,
+    private val onMessage: suspend (Sendable, String) -> Unit
+) : DefaultRtmClientListener() {
 
-/**
- * Base class for messages that can be sent to peers with the Agora RTM SDK.
- * They are serialized to JSON format before sending and will be re-assembled
- * on the receiving end. The [kind] of a sendable message can be used
- * to determine the reaction of the receiver
- */
-@Serializable
-data class Sendable(
-    @SerialName("kind")
-    val kind: Kind,
-    @SerialName("body")
-    private val bodyText: String
-) {
-    @Serializable
-    enum class Kind(val bodyClass: KClass<out Any>) {
-        @SerialName("room-closed")
-        RoomClosed(Room::class),
-
-        @SerialName("room-list")
-        RoomList(com.raywenderlich.android.club.models.RoomList::class),
-
-        @SerialName("role-changed")
-        RoleChanged(UserRoleChanged::class),
-
-        @SerialName("user-updated")
-        UserUpdated(com.raywenderlich.android.club.models.UserUpdated::class),
+    override fun onConnectionStateChanged(state: Int, reason: Int) {
+        onConnectionState(ConnectionState.fromCode(state))
     }
 
-    @Suppress("UNCHECKED_CAST")
-    @OptIn(InternalSerializationApi::class)
-    fun <T : Any> decodeBody(): T {
-        return Json.decodeFromString(kind.bodyClass.serializer(), bodyText) as T
+    override fun onMessageReceived(message: RtmMessage, peerId: String) {
+        // Decode the incoming message
+        val data = runCatching { Json.decodeFromString<Sendable>(message.text) }.getOrNull()
+            ?: run {
+                println("onMessageReceived() got unknown message from $peerId: ${message.text}")
+                return
+            }
+
+        coroutineScope.launch {
+            onMessage(data, peerId)
+        }
     }
 }

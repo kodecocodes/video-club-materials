@@ -34,57 +34,8 @@
 
 package com.raywenderlich.android.club.models
 
-import com.raywenderlich.android.club.models.Room
-import com.raywenderlich.android.club.models.RoomList
-import com.raywenderlich.android.club.models.UserRoleChanged
-import io.agora.rtm.RtmClient
-import io.agora.rtm.RtmMessage
-import kotlinx.serialization.*
-import kotlinx.serialization.json.Json
-import kotlin.reflect.KClass
-
-/**
- * Helper functions for creating [Sendable] messages
- * from the context of a RTM client.
- */
-@OptIn(InternalSerializationApi::class)
-fun RtmClient.createSendableMessage(kind: Sendable.Kind, bodyText: String): RtmMessage {
-    val sendable = Sendable(kind, bodyText)
-    val encoded = Json.encodeToString(sendable)
-    return createMessage(encoded)
-}
-
-/**
- * Base class for messages that can be sent to peers with the Agora RTM SDK.
- * They are serialized to JSON format before sending and will be re-assembled
- * on the receiving end. The [kind] of a sendable message can be used
- * to determine the reaction of the receiver
- */
-@Serializable
-data class Sendable(
-    @SerialName("kind")
-    val kind: Kind,
-    @SerialName("body")
-    private val bodyText: String
-) {
-    @Serializable
-    enum class Kind(val bodyClass: KClass<out Any>) {
-        @SerialName("room-closed")
-        RoomClosed(Room::class),
-
-        @SerialName("room-list")
-        RoomList(com.raywenderlich.android.club.models.RoomList::class),
-
-        @SerialName("role-changed")
-        RoleChanged(UserRoleChanged::class),
-
-        @SerialName("user-updated")
-        UserUpdated(com.raywenderlich.android.club.models.UserUpdated::class),
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    @OptIn(InternalSerializationApi::class)
-    fun <T : Any> decodeBody(): T {
-        return Json.decodeFromString(kind.bodyClass.serializer(), bodyText) as T
-    }
-}
+data class MemberInfo(
+    val agoraId: String,
+    val userName: String,
+    val raisedHand: Boolean
+)

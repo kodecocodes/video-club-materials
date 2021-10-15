@@ -39,27 +39,29 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.raywenderlich.android.club.R
+import com.raywenderlich.android.club.models.MemberInfo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
-private val callback = object : DiffUtil.ItemCallback<String>() {
-    override fun areItemsTheSame(oldItem: String, newItem: String): Boolean {
-        return oldItem == newItem
+private val callback = object : DiffUtil.ItemCallback<MemberInfo>() {
+    override fun areItemsTheSame(oldItem: MemberInfo, newItem: MemberInfo): Boolean {
+        return oldItem.agoraId == newItem.agoraId
     }
 
-    override fun areContentsTheSame(oldItem: String, newItem: String): Boolean {
+    override fun areContentsTheSame(oldItem: MemberInfo, newItem: MemberInfo): Boolean {
         return oldItem == newItem
     }
 }
 
-class UserListAdapter : ListAdapter<String, UserViewHolder>(callback) {
+class UserListAdapter : ListAdapter<MemberInfo, UserViewHolder>(callback) {
 
-    private val _itemClickEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    val itemClickEvents: Flow<String> = _itemClickEvents
+    private val _itemClickEvents = MutableSharedFlow<MemberInfo>(extraBufferCapacity = 1)
+    val itemClickEvents: Flow<MemberInfo> = _itemClickEvents
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UserViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -70,7 +72,8 @@ class UserListAdapter : ListAdapter<String, UserViewHolder>(callback) {
     override fun onBindViewHolder(holder: UserViewHolder, position: Int) {
         val user = getItem(position)
 
-        holder.nameText.text = user
+        holder.nameText.text = user.userName
+        holder.raisedHandImage.isVisible = user.raisedHand
         holder.itemView.setOnClickListener { _itemClickEvents.tryEmit(user) }
     }
 }
@@ -78,4 +81,5 @@ class UserListAdapter : ListAdapter<String, UserViewHolder>(callback) {
 class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
     val nameText = view.findViewById<TextView>(R.id.user_name)
     val image = view.findViewById<ImageView>(R.id.user_image)
+    val raisedHandImage = view.findViewById<ImageView>(R.id.image_raised_hand)
 }

@@ -32,59 +32,45 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.models
+package com.raywenderlich.android.club.controllers.util
 
-import com.raywenderlich.android.club.models.Room
-import com.raywenderlich.android.club.models.RoomList
-import com.raywenderlich.android.club.models.UserRoleChanged
+import com.raywenderlich.android.agora.rtm.awaitGetUserAttributes
+import com.raywenderlich.android.club.models.MemberInfo
+import io.agora.rtm.RtmAttribute
+import io.agora.rtm.RtmChannelMember
 import io.agora.rtm.RtmClient
-import io.agora.rtm.RtmMessage
-import kotlinx.serialization.*
-import kotlinx.serialization.json.Json
-import kotlin.reflect.KClass
+
+// Local user attributes:
+// These are public properties of the current user, readable by other users in the same channel.
+// The app uses it to share common state with the room, such as the user's name or
+// whether they have raised their hand
+private const val ATTR_HAND_RAISED = "hand-raised"
+
+/* Conversions between Agora and app */
 
 /**
- * Helper functions for creating [Sendable] messages
- * from the context of a RTM client.
+ * Convert an RtmChannelMember to the app realm's MemberInfo object,
+ * parsing all the public attributes in their profile to a new structure
  */
-@OptIn(InternalSerializationApi::class)
-fun RtmClient.createSendableMessage(kind: Sendable.Kind, bodyText: String): RtmMessage {
-    val sendable = Sendable(kind, bodyText)
-    val encoded = Json.encodeToString(sendable)
-    return createMessage(encoded)
+suspend fun RtmChannelMember.asMemberInfo(client: RtmClient): MemberInfo {
+    val attributes = client.awaitGetUserAttributes(this.userId)
+    return attributes.asMemberInfo(this.userId)
 }
 
 /**
- * Base class for messages that can be sent to peers with the Agora RTM SDK.
- * They are serialized to JSON format before sending and will be re-assembled
- * on the receiving end. The [kind] of a sendable message can be used
- * to determine the reaction of the receiver
+ * Create a MemberInfo object with the given [peerId] from a list of attributes.
  */
-@Serializable
-data class Sendable(
-    @SerialName("kind")
-    val kind: Kind,
-    @SerialName("body")
-    private val bodyText: String
-) {
-    @Serializable
-    enum class Kind(val bodyClass: KClass<out Any>) {
-        @SerialName("room-closed")
-        RoomClosed(Room::class),
+fun List<RtmAttribute>.asMemberInfo(peerId: String): MemberInfo {
+    val map = this.associate { it.key to it.value }
 
-        @SerialName("room-list")
-        RoomList(com.raywenderlich.android.club.models.RoomList::class),
-
-        @SerialName("role-changed")
-        RoleChanged(UserRoleChanged::class),
-
-        @SerialName("user-updated")
-        UserUpdated(com.raywenderlich.android.club.models.UserUpdated::class),
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    @OptIn(InternalSerializationApi::class)
-    fun <T : Any> decodeBody(): T {
-        return Json.decodeFromString(kind.bodyClass.serializer(), bodyText) as T
-    }
+    return MemberInfo(
+        agoraId = peerId,
+        userName = peerId, // TODO
+        raisedHand = map[ATTR_HAND_RAISED]?.toBooleanStrictOrNull() ?: false
+    )
 }
+
+fun createAttributeList(isRaisedHand: Boolean): List<RtmAttribute> =
+    listOf(
+        RtmAttribute(ATTR_HAND_RAISED, isRaisedHand.toString())
+    )

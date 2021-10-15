@@ -37,16 +37,23 @@ package com.raywenderlich.android.club.controllers
 import android.content.Context
 import com.raywenderlich.android.agora.rtm.*
 import com.raywenderlich.android.club.BuildConfig
+import com.raywenderlich.android.club.controllers.util.ClientListenerImpl
+import com.raywenderlich.android.club.controllers.util.RoomChannelListener
+import com.raywenderlich.android.club.controllers.util.asMemberInfo
+import com.raywenderlich.android.club.controllers.util.createAttributeList
 import com.raywenderlich.android.club.models.*
-import io.agora.rtm.*
+import io.agora.rtm.RtmChannel
+import io.agora.rtm.RtmChannelMember
+import io.agora.rtm.RtmClient
+import io.agora.rtm.RtmMessage
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.*
@@ -69,8 +76,6 @@ class SessionManager(
         // to all users. When any user creates or closes their own room, this information
         // is spread to all other users waiting in the lobby channel.
         private const val LOBBY_CHANNEL_ID = "_lobby"
-
-        private val NO_OPTIONS = SendMessageOptions()
     }
 
     /**
@@ -80,6 +85,7 @@ class SessionManager(
     private data class RoomChannelConnection(
         val room: Room,
         val channel: RtmChannel,
+        val isRaisedHand: Boolean,
         val isBroadcaster: Boolean,
         val token: Token,
         val listener: RoomChannelListener
@@ -92,7 +98,18 @@ class SessionManager(
     private val _connectedRoomEvents = MutableStateFlow<RoomSession?>(null)
 
     // Access to Agora RTM resources
-    private val rtmClient by lazy { RtmClient.createInstance(context, appId, clientEventListener) }
+    private val client by lazy {
+        RtmClient.createInstance(
+            context,
+            appId,
+            ClientListenerImpl(
+                coroutineScope = coroutineScope,
+                onConnectionState = { _connectionStateEvents.value = it },
+                onMessage = ::handleClientMessage
+            )
+        )
+    }
+    private val coroutineScope = CoroutineScope(dispatcher)
 
     // Currently logged-in user; set to non-null after login
     private var currentUser: User? = null
@@ -156,13 +173,12 @@ class SessionManager(
             val tokenResponse = serverApi.createRtmToken(userName)
 
             // Sign into Agora RTM system and hold onto the credentials
-            rtmClient.awaitLogin(tokenResponse.token.value, userName)
-//            rtmClient.awaitLogin(tokenResponse.token.value, "$userName@$userId") // TODO USE ID ON BACKEND TOO
+            client.awaitLogin(tokenResponse.token.value, userName)
             currentUser = User(userId, userName, tokenResponse.token)
 
             // Finally, log into the common "lobby" channel,
             // which will be used to communicate open rooms to all logged-in users
-            lobbyChannel = rtmClient.awaitJoinChannel(LOBBY_CHANNEL_ID, lobbyChannelListener)
+            lobbyChannel = client.awaitJoinChannel(LOBBY_CHANNEL_ID, lobbyChannelListener)
         }
     }
 
@@ -185,7 +201,7 @@ class SessionManager(
             }
 
             // Sign out of the system completely
-            rtmClient.awaitLogout()
+            client.awaitLogout()
             currentUser = null
         }
     }
@@ -214,15 +230,15 @@ class SessionManager(
 
             // Create and join the messaging channel for the room
             val isBroadcaster = currentUser.id == room.hostId
-            val channelListener = RoomChannelListener()
-            val channel = rtmClient.awaitJoinChannel(room.roomId.value, channelListener)
+            val channelListener = RoomChannelListener(client, coroutineScope)
+            val channel = client.awaitJoinChannel(room.roomId.value, channelListener)
 
             // Initialize local listener's understanding of the channel's members
             // (for new rooms: just the host for now, otherwise all current members)
             channelListener.membersFlow.value = if (isBroadcaster) {
-                listOf(currentUser.name)
+                listOf(MemberInfo(currentUser.name, currentUser.name, false))
             } else {
-                channel.awaitGetMembers().map { it.userId }
+                channel.awaitGetMembers().map { it.asMemberInfo(client) }
             }
 
             // Obtain authentication token to the audio streams of the room
@@ -231,6 +247,7 @@ class SessionManager(
             roomConnection = RoomChannelConnection(
                 room = room,
                 channel = channel,
+                isRaisedHand = false,
                 isBroadcaster = isBroadcaster,
                 token = tokenResponse.token,
                 listener = channelListener
@@ -255,9 +272,15 @@ class SessionManager(
             roomConnection?.let { connection ->
                 // If this user was a broadcaster of the room,
                 // notify its disappearance to users in the lobby
+                // and throw everybody out
                 if (connection.isBroadcaster) {
                     _openRoomEvents.update { it - connection.room }
                     sendUpdatedRoomListToLobbyUsers(wait = true)
+
+                    client.awaitSendMessageToChannelMembers(
+                        channel = connection.channel,
+                        message = client.createRoomClosedMessage(connection.room)
+                    )
                 }
 
                 connection.channel.awaitLeave()
@@ -267,47 +290,79 @@ class SessionManager(
         }
     }
 
+    suspend fun toggleHandRaised() {
+        val currentUser = currentUser ?: return
+        val connection = roomConnection ?: return
+
+        val newState = !connection.isRaisedHand
+
+        withContext(dispatcher) {
+            // Update a local user attribute to reflect the updated "hand raised" state
+            val attributes = createAttributeList(isRaisedHand = newState)
+            client.awaitAddOrUpdateLocalUserAttributes(attributes)
+
+            // Local: Update knowledge of the connection to reflect the requested state
+            val updatedConnection = connection.copy(isRaisedHand = newState)
+            updatedConnection.listener.updateMember(attributes.asMemberInfo(currentUser.name))
+            roomConnection = updatedConnection
+
+            // Remote: Broadcast to the room that our attributes have changed
+            client.awaitSendMessageToChannelMembers(
+                channel = connection.channel,
+                client.createUserUpdatedMessage(currentUser)
+            )
+        }
+    }
+
     /* Private */
+
+    // Receiver of remote messages from other users
+    private suspend fun handleClientMessage(message: Sendable, peerId: String) {
+        when (message.kind) {
+            // List of available rooms has been updated
+            Sendable.Kind.RoomList -> {
+                val rooms = message.decodeBody<RoomList>()
+                _openRoomEvents.update { rooms.rooms.toSet() }
+            }
+
+            // The current room was closed by the host; stop listening to it
+            Sendable.Kind.RoomClosed -> {
+                val connection = roomConnection ?: return
+                val room = message.decodeBody<Room>()
+
+                if (connection.room.roomId == room.roomId) {
+                    leaveRoom()
+                }
+            }
+
+            // User has updated their public information
+            Sendable.Kind.UserUpdated -> {
+                val connection = roomConnection ?: return
+
+                // Fetch attributes for the updated user
+                val user = message.decodeBody<UserUpdated>()
+                val attributes = client.awaitGetUserAttributes(user.name)
+
+                val updatedMember = attributes.asMemberInfo(peerId)
+                connection.listener.updateMember(updatedMember)
+            }
+            
+            else -> println("onMessageReceived() doesn't handle message: $message")
+        }
+    }
 
     private suspend fun sendUpdatedRoomListToLobbyUsers(wait: Boolean = false) {
         val lobbyChannel = lobbyChannel ?: return
-        val message = rtmClient.createRoomListMessage() ?: return
+        val message = client.createRoomListMessage()
 
         if (wait) {
-            rtmClient.awaitSendMessageToChannelMembers(lobbyChannel, message, NO_OPTIONS)
+            client.awaitSendMessageToChannelMembers(lobbyChannel, message, NO_OPTIONS)
         } else {
-            rtmClient.sendMessageToChannelMembers(lobbyChannel, message, NO_OPTIONS)
+            client.sendMessageToChannelMembers(lobbyChannel, message, NO_OPTIONS)
         }
     }
 
     /* Agora Listeners */
-
-    /**
-     * Client-level listener for global connection status events
-     */
-    private val clientEventListener = object : DefaultRtmClientListener() {
-        override fun onConnectionStateChanged(state: Int, reason: Int) {
-            _connectionStateEvents.value = ConnectionState.fromCode(state)
-        }
-
-        override fun onMessageReceived(message: RtmMessage, peerId: String) {
-            // Decode the incoming message
-            val data = runCatching { Json.decodeFromString<Sendable>(message.text) }.getOrNull()
-                ?: run {
-                    println("onMessageReceived() got unknown message from $peerId: ${message.text}")
-                    return
-                }
-
-            when (data.kind) {
-                Sendable.Kind.RoomList -> {
-                    // Replace the list of rooms with the received data
-                    val rooms = data.decodeBody<RoomList>()
-                    _openRoomEvents.update { rooms.rooms.toSet() }
-                }
-                else -> println("onMessageReceived() doesn't handle message of kind ${data.kind}: ${message.text}")
-            }
-        }
-    }
 
     /**
      * Listener for the "lobby" channel, handling the synchronization of open rooms
@@ -319,42 +374,32 @@ class SessionManager(
 
         override fun onMemberJoined(member: RtmChannelMember) {
             // Provide any member of the lobby with the current list of open rooms
-            val message = rtmClient.createRoomListMessage() ?: return
-            rtmClient.sendMessageToPeer(member.userId, message, NO_OPTIONS, null)
-        }
-    }
-
-    /**
-     * Listener for any ongoing room, handling messages
-     * to and from other audience members and the broadcaster
-     */
-    private class RoomChannelListener : DefaultRtmChannelListener() {
-        val membersFlow = MutableStateFlow(emptyList<String>())
-
-        override fun onMessageReceived(message: RtmMessage, member: RtmChannelMember) {
-            println("onMessageReceived in '${member.channelId}' from ${member.userId}: ${message.text}")
-        }
-
-        override fun onMemberJoined(member: RtmChannelMember) {
-            membersFlow.update { it + member.userId }
-        }
-
-        override fun onMemberLeft(member: RtmChannelMember) {
-            membersFlow.update { it - member.userId }
+            val message = client.createRoomListMessage() ?: return
+            client.sendMessageToPeer(member.userId, message, NO_OPTIONS, null)
         }
     }
 
     /* Serialized messages between clients */
 
-    private fun RtmClient.createRoomListMessage(): RtmMessage? {
+    private fun RtmClient.createRoomListMessage(): RtmMessage {
         val rooms = _openRoomEvents.value.toList()
-        return if (rooms.isNotEmpty()) {
-            createSendableMessage(
-                kind = Sendable.Kind.RoomList,
-                bodyText = Json.encodeToString(RoomList(rooms))
-            )
-        } else {
-            null
-        }
+        return createSendableMessage(
+            kind = Sendable.Kind.RoomList,
+            bodyText = Json.encodeToString(RoomList(rooms))
+        )
+    }
+
+    private fun RtmClient.createRoomClosedMessage(room: Room): RtmMessage {
+        return createSendableMessage(
+            kind = Sendable.Kind.RoomClosed,
+            bodyText = Json.encodeToString(room)
+        )
+    }
+
+    private fun RtmClient.createUserUpdatedMessage(user: User): RtmMessage {
+        return createSendableMessage(
+            kind = Sendable.Kind.UserUpdated,
+            bodyText = Json.encodeToString(UserUpdated(user.name))
+        )
     }
 }

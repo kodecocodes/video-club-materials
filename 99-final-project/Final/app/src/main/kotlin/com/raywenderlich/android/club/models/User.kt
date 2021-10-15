@@ -59,3 +59,9 @@ data class UserRoleChanged(
     @SerialName("is_broadcaster")
     val isBroadcaster: Boolean
 )
+
+@Serializable
+data class UserUpdated(
+    @SerialName("name")
+    val name: String
+)

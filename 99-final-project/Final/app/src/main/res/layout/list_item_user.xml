@@ -38,13 +38,26 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <com.google.android.material.imageview.ShapeableImageView
-        android:id="@+id/user_image"
+    <FrameLayout
         android:layout_width="96dp"
-        android:layout_height="96dp"
-        android:scaleType="centerCrop"
-        app:shapeAppearanceOverlay="@style/CircleImageView"
-        app:srcCompat="@color/colorAccent" />
+        android:layout_height="96dp">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/user_image"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop"
+            app:shapeAppearanceOverlay="@style/CircleImageView"
+            app:srcCompat="@color/colorAccent" />
+
+        <ImageView
+            android:id="@+id/image_raised_hand"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="8dp"
+            app:srcCompat="@drawable/ic_notification" />
+    </FrameLayout>
 
     <TextView
         android:id="@+id/user_name"

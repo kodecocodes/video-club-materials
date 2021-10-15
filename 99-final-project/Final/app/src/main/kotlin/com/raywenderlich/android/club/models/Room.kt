@@ -70,5 +70,5 @@ data class RoomInfo(
 
 data class RoomSession(
     val info: RoomInfo,
-    val memberEvents: Flow<List<String>>
+    val memberEvents: Flow<List<MemberInfo>>
 )

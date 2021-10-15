@@ -38,6 +38,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.raywenderlich.android.agora.rtm.ConnectionState
 import com.raywenderlich.android.club.controllers.SessionManager
+import com.raywenderlich.android.club.models.MemberInfo
 import com.raywenderlich.android.club.models.Room
 import com.raywenderlich.android.club.models.RoomInfo
 import com.raywenderlich.android.club.models.RoomSession
@@ -55,7 +56,7 @@ class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
         val connectionState: ConnectionState = ConnectionState.Disconnected,
         val openRooms: List<Room> = emptyList(),
         val connectedRoomInfo: RoomInfo? = null,
-        val connectedRoomMembers: List<String> = emptyList()
+        val connectedRoomMembers: List<MemberInfo> = emptyList()
     )
 
     private val _state = MutableStateFlow(State())
@@ -150,6 +151,12 @@ class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
     fun leaveRoom() {
         viewModelScope.launch {
             sessionManager.leaveRoom()
+        }
+    }
+
+    fun toggleHandRaised() {
+        viewModelScope.launch {
+            sessionManager.toggleHandRaised()
         }
     }
 

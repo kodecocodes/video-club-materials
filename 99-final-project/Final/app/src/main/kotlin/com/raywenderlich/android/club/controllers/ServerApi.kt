@@ -38,8 +38,8 @@ import android.util.Log
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.raywenderlich.android.club.BuildConfig
 import com.raywenderlich.android.club.models.RoomId
+import com.raywenderlich.android.club.models.TokenResponse
 import com.raywenderlich.android.club.models.UserId
-import com.raywenderlich.android.club.models.server.TokenResponse
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType

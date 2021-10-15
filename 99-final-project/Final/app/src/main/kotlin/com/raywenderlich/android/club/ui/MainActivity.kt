@@ -47,6 +47,7 @@ import com.raywenderlich.android.agora.rtm.ConnectionState
 import com.raywenderlich.android.club.R
 import com.raywenderlich.android.club.models.Room
 import com.raywenderlich.android.club.controllers.AudioService
+import com.raywenderlich.android.club.models.MemberInfo
 import com.raywenderlich.android.club.utils.RequestPermission
 import com.raywenderlich.android.club.utils.mainViewModel
 import kotlinx.coroutines.flow.launchIn
@@ -65,6 +66,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     private val buttonLogout by lazy { findViewById<Button>(R.id.button_logout) }
     private val buttonCreateRoom by lazy { findViewById<Button>(R.id.button_create_room) }
     private val buttonLeaveRoom by lazy { findViewById<Button>(R.id.button_leave_room) }
+    private val buttonRaiseHand by lazy { findViewById<Button>(R.id.button_raise_hand) }
 
     private val rvRooms by lazy { findViewById<RecyclerView>(R.id.list_rooms) }
     private val rvRoomsAdapter = RoomListAdapter()
@@ -93,6 +95,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         buttonLogout.setOnClickListener { doLogout() }
         buttonCreateRoom.setOnClickListener { createRoom() }
         buttonLeaveRoom.setOnClickListener { closeRoom() }
+        buttonRaiseHand.setOnClickListener { toggleHandRaised() }
 
         // Subscribe to UI state
         viewModel.state
@@ -118,6 +121,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         val inRoom = state.connectedRoomInfo != null
         buttonCreateRoom.isEnabled = !inRoom
         buttonLeaveRoom.isEnabled = inRoom
+        buttonRaiseHand.isEnabled = inRoom
 
         // Update list of rooms and disable the list while connected to a room
         rvRooms.isEnabled = !inRoom
@@ -165,8 +169,12 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         viewModel.leaveRoom()
     }
 
-    private fun toggleUserRole(userName: String) {
-        viewModel.toggleUserRole(userName)
+    private fun toggleHandRaised() {
+        viewModel.toggleHandRaised()
+    }
+
+    private fun toggleUserRole(member: MemberInfo) {
+        viewModel.toggleUserRole(member.userName)
     }
 
     private fun ensureAudioPermission(block: suspend () -> Unit) {
