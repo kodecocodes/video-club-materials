@@ -51,6 +51,8 @@ import com.raywenderlich.android.club.R
 import com.raywenderlich.android.club.models.RoomInfo
 import com.raywenderlich.android.club.utils.lazyWithReset
 import io.agora.rtc.Constants
+import io.agora.rtc.Constants.AudioProfile
+import io.agora.rtc.Constants.AudioScenario
 import io.agora.rtc.IRtcEngineEventHandler
 import io.agora.rtc.IRtcEngineEventHandler.ClientRole.CLIENT_ROLE_AUDIENCE
 import io.agora.rtc.IRtcEngineEventHandler.ClientRole.CLIENT_ROLE_BROADCASTER
@@ -219,6 +221,10 @@ class AudioService : Service() {
             // Joining the first channel
             println("Joining RTC room: ${info.roomId}")
             rtcEngine.setChannelProfile(Constants.CHANNEL_PROFILE_LIVE_BROADCASTING)
+            rtcEngine.setAudioProfile(
+                AudioProfile.getValue(AudioProfile.SPEECH_STANDARD),
+                AudioScenario.getValue(AudioScenario.MEETING)
+            )
             rtcEngine.setIsBroadcaster(info.isBroadcaster)
             rtcEngine.joinChannel(info.token.value, info.roomId.value, "", info.userId.value)
         }
