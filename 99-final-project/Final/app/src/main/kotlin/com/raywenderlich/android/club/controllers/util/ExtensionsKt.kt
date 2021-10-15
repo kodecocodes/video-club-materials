@@ -36,6 +36,7 @@ package com.raywenderlich.android.club.controllers.util
 
 import com.raywenderlich.android.agora.rtm.awaitGetUserAttributes
 import com.raywenderlich.android.club.models.MemberInfo
+import com.raywenderlich.android.club.models.MemberRole
 import io.agora.rtm.RtmAttribute
 import io.agora.rtm.RtmChannelMember
 import io.agora.rtm.RtmClient
@@ -45,6 +46,7 @@ import io.agora.rtm.RtmClient
 // The app uses it to share common state with the room, such as the user's name or
 // whether they have raised their hand
 private const val ATTR_HAND_RAISED = "hand-raised"
+private const val ATTR_ROLE = "role"
 
 /* Conversions between Agora and app */
 
@@ -66,11 +68,25 @@ fun List<RtmAttribute>.asMemberInfo(peerId: String): MemberInfo {
     return MemberInfo(
         agoraId = peerId,
         userName = peerId, // TODO
+        role = memberRoleOf(map[ATTR_ROLE]),
         raisedHand = map[ATTR_HAND_RAISED]?.toBooleanStrictOrNull() ?: false
     )
 }
 
-fun createAttributeList(isRaisedHand: Boolean): List<RtmAttribute> =
-    listOf(
-        RtmAttribute(ATTR_HAND_RAISED, isRaisedHand.toString())
+fun MemberInfo.asAttributeList() =
+    createAttributeList(this.role, this.raisedHand)
+
+fun createAttributeList(
+    role: MemberRole,
+    isRaisedHand: Boolean
+): List<RtmAttribute> =
+    listOfNotNull(
+        RtmAttribute(ATTR_HAND_RAISED, isRaisedHand.toString()),
+        RtmAttribute(ATTR_ROLE, role.id)
     )
+
+private fun memberRoleOf(value: String?): MemberRole {
+    return MemberRole.values()
+        .firstOrNull { it.id == value }
+        ?: MemberRole.Audience
+}

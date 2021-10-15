@@ -37,5 +37,12 @@ package com.raywenderlich.android.club.models
 data class MemberInfo(
     val agoraId: String,
     val userName: String,
+    val role: MemberRole,
     val raisedHand: Boolean
 )
+
+enum class MemberRole(val id: String) {
+    Host("host"),
+    CoHost("cohost"),
+    Audience("audience")
+}

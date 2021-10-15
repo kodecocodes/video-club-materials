@@ -112,6 +112,12 @@ suspend fun RtmClient.awaitAddOrUpdateLocalUserAttributes(attributes: List<RtmAt
     }
 }
 
+suspend fun RtmClient.awaitClearLocalUserAttributes() {
+    suspendCoroutine<Void> { continuation ->
+        clearLocalUserAttributes(continuation.asResultCallback())
+    }
+}
+
 suspend fun RtmClient.awaitGetUserAttributes(peerId: String): List<RtmAttribute> =
     suspendCoroutine { continuation ->
         getUserAttributes(peerId, continuation.asResultCallback())

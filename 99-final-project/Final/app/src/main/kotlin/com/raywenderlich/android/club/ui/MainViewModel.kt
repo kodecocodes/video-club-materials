@@ -160,13 +160,9 @@ class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
-    fun toggleUserRole(userName: String) {
-//        // If no room is currently active or we're not its host, don't do anything
-//        val session = currentRoomSession ?: return
-//        if (session.room.hostId != session.user.id) return
-//
-//        viewModelScope.launch {
-//            session.toggleRole(userName)
-//        }
+    fun toggleRole(member: MemberInfo) {
+        viewModelScope.launch {
+            sessionManager.toggleRole(member)
+        }
     }
 }

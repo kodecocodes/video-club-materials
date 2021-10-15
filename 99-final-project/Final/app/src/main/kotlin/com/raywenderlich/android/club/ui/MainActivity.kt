@@ -174,7 +174,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     }
 
     private fun toggleUserRole(member: MemberInfo) {
-        viewModel.toggleUserRole(member.userName)
+        viewModel.toggleRole(member)
     }
 
     private fun ensureAudioPermission(block: suspend () -> Unit) {
