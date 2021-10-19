@@ -32,19 +32,9 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.agora.rtm
+package com.raywenderlich.android.club.ui.main
 
-import io.agora.rtm.RtmStatusCode
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 
-enum class ConnectionState(private val rtmCode: Int) {
-    Connecting(RtmStatusCode.ConnectionState.CONNECTION_STATE_CONNECTING),
-    Connected(RtmStatusCode.ConnectionState.CONNECTION_STATE_CONNECTED),
-    Reconnecting(RtmStatusCode.ConnectionState.CONNECTION_STATE_RECONNECTING),
-    Disconnected(RtmStatusCode.ConnectionState.CONNECTION_STATE_DISCONNECTED),
-    Aborted(RtmStatusCode.ConnectionState.CONNECTION_STATE_ABORTED);
-
-    companion object {
-        fun fromCode(value: Int): ConnectionState =
-            values().firstOrNull { it.rtmCode == value } ?: Aborted
-    }
+class RoomBottomSheetFragment : BottomSheetDialogFragment() {
 }

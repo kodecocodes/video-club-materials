@@ -32,16 +32,12 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.ui
+package com.raywenderlich.android.club.ui.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.raywenderlich.android.agora.rtm.ConnectionState
 import com.raywenderlich.android.club.controllers.SessionManager
-import com.raywenderlich.android.club.models.MemberInfo
-import com.raywenderlich.android.club.models.Room
-import com.raywenderlich.android.club.models.RoomInfo
-import com.raywenderlich.android.club.models.RoomSession
+import com.raywenderlich.android.club.models.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -53,7 +49,7 @@ import kotlinx.coroutines.launch
 class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
 
     data class State(
-        val connectionState: ConnectionState = ConnectionState.Disconnected,
+        val userShortName: String? = null,
         val openRooms: List<Room> = emptyList(),
         val connectedRoomInfo: RoomInfo? = null,
         val connectedRoomMembers: List<MemberInfo> = emptyList()
@@ -69,7 +65,7 @@ class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
         sessionManager.connectionStateEvents
             .onEach { newState ->
                 _state.update {
-                    it.copy(connectionState = newState)
+                    it.copy(userShortName = newState.userShortName())
                 }
             }
             .launchIn(viewModelScope)
@@ -87,6 +83,19 @@ class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
                 updateSessionState(session)
             }
             .launchIn(viewModelScope)
+    }
+
+    private fun LoginState.userShortName(): String? {
+        if (this !is LoginState.Connected) {
+            return null
+        }
+
+        val name = this.user.name
+        return if (name.length > 1) {
+            "${name.first()}${name.last()}".uppercase()
+        } else {
+            name
+        }
     }
 
     private fun updateSessionState(session: RoomSession?) {

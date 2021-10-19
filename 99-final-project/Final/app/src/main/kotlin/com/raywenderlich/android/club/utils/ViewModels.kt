@@ -31,19 +31,34 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+@file:Suppress("UNCHECKED_CAST")
 
 package com.raywenderlich.android.club.utils
 
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.raywenderlich.android.club.ui.MainViewModel
+import androidx.lifecycle.get
 import com.raywenderlich.android.club.app
+import com.raywenderlich.android.club.ui.login.LoginViewModel
+import com.raywenderlich.android.club.ui.main.MainViewModel
+
+/**
+ * Create a ViewModel for the Login screen.
+ */
+fun loginViewModel(activity: ComponentActivity): LoginViewModel {
+    val factory = object : ViewModelProvider.Factory {
+        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+            return LoginViewModel(activity.app.settingsRepository, activity.app.sessionManager) as T
+        }
+    }
+
+    return ViewModelProvider(activity, factory).get()
+}
 
 /**
  * Create a ViewModel for the Main screen.
  */
-@Suppress("UNCHECKED_CAST")
 fun mainViewModel(activity: ComponentActivity): MainViewModel {
     val factory = object : ViewModelProvider.Factory {
         override fun <T : ViewModel?> create(modelClass: Class<T>): T {
@@ -51,5 +66,5 @@ fun mainViewModel(activity: ComponentActivity): MainViewModel {
         }
     }
 
-    return ViewModelProvider(activity, factory).get(MainViewModel::class.java)
+    return ViewModelProvider(activity, factory).get()
 }

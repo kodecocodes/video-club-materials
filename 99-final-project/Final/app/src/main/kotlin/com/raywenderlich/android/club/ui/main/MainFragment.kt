@@ -32,41 +32,43 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.controllers.util
+package com.raywenderlich.android.club.ui.main
 
-import com.raywenderlich.android.agora.rtm.DefaultRtmClientListener
-import com.raywenderlich.android.club.models.Sendable
-import io.agora.rtm.RtmMessage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
+import android.os.Bundle
+import android.view.View
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.get
+import com.google.android.material.button.MaterialButton
+import com.raywenderlich.android.club.R
+import com.raywenderlich.android.club.utils.view
+import com.raywenderlich.android.club.utils.viewLifecycleScope
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
-/**
- * A special variant of Agora's RtmClientListener interface which invokes callbacks
- * related to incoming messages using the given [coroutineScope], allowing for them
- * to be suspending functions.
- */
-class ClientListenerImpl(
-    private val coroutineScope: CoroutineScope,
-    private val onConnectionState: (Int) -> Unit,
-    private val onMessage: suspend (Sendable, String) -> Unit
-) : DefaultRtmClientListener() {
+class MainFragment : Fragment(R.layout.fragment_main) {
 
-    override fun onConnectionStateChanged(state: Int, reason: Int) {
-        onConnectionState(state)
+    /* UI */
+
+    private val buttonUser by view<MaterialButton>(R.id.button_user)
+
+    /* Logic */
+
+    private lateinit var viewModel: MainViewModel
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // Connect to activity's ViewModel
+        viewModel = ViewModelProvider(requireActivity()).get()
+
+        // Setup UI
+        viewModel.state
+            .onEach { handleState(it) }
+            .launchIn(viewLifecycleScope)
     }
 
-    override fun onMessageReceived(message: RtmMessage, peerId: String) {
-        // Decode the incoming message
-        val data = runCatching { Json.decodeFromString<Sendable>(message.text) }.getOrNull()
-            ?: run {
-                println("onMessageReceived() got unknown message from $peerId: ${message.text}")
-                return
-            }
-
-        coroutineScope.launch {
-            onMessage(data, peerId)
-        }
+    private fun handleState(state: MainViewModel.State) {
+        buttonUser.text = state.userShortName ?: ""
     }
 }

@@ -32,54 +32,54 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.ui
+package com.raywenderlich.android.club.ui.main
 
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ImageView
 import android.widget.TextView
-import androidx.core.view.isVisible
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.raywenderlich.android.club.R
-import com.raywenderlich.android.club.models.MemberInfo
+import com.raywenderlich.android.club.models.Room
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
-private val callback = object : DiffUtil.ItemCallback<MemberInfo>() {
-    override fun areItemsTheSame(oldItem: MemberInfo, newItem: MemberInfo): Boolean {
-        return oldItem.agoraId == newItem.agoraId
-    }
-
-    override fun areContentsTheSame(oldItem: MemberInfo, newItem: MemberInfo): Boolean {
+private val callback = object : DiffUtil.ItemCallback<Room>() {
+    override fun areItemsTheSame(oldItem: Room, newItem: Room): Boolean {
         return oldItem == newItem
     }
+
+    override fun areContentsTheSame(oldItem: Room, newItem: Room): Boolean {
+        return oldItem.roomId == newItem.roomId
+    }
 }
 
-class UserListAdapter : ListAdapter<MemberInfo, UserViewHolder>(callback) {
+class RoomListAdapter : ListAdapter<Room, RoomViewHolder>(callback) {
 
-    private val _itemClickEvents = MutableSharedFlow<MemberInfo>(extraBufferCapacity = 1)
-    val itemClickEvents: Flow<MemberInfo> = _itemClickEvents
+    private val _itemClickEvents = MutableSharedFlow<Room>(extraBufferCapacity = 1)
+    val itemClickEvents: Flow<Room> = _itemClickEvents
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UserViewHolder {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RoomViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.list_item_user, parent, false)
-        return UserViewHolder(view)
+            .inflate(R.layout.list_item_room, parent, false)
+        return RoomViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: UserViewHolder, position: Int) {
-        val user = getItem(position)
+    override fun onBindViewHolder(holder: RoomViewHolder, position: Int) {
+        val room = getItem(position)
 
-        holder.nameText.text = user.userName
-        holder.raisedHandImage.isVisible = user.raisedHand
-        holder.itemView.setOnClickListener { _itemClickEvents.tryEmit(user) }
+        holder.idText.text = room.roomId.toString()
+        holder.hostText.text = room.hostId.value.toString()
+
+        holder.itemView.setOnClickListener {
+            _itemClickEvents.tryEmit(room)
+        }
     }
 }
 
-class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-    val nameText = view.findViewById<TextView>(R.id.user_name)
-    val image = view.findViewById<ImageView>(R.id.user_image)
-    val raisedHandImage = view.findViewById<ImageView>(R.id.image_raised_hand)
+class RoomViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    val idText = view.findViewById<TextView>(R.id.text_id)
+    val hostText = view.findViewById<TextView>(R.id.text_host)
 }

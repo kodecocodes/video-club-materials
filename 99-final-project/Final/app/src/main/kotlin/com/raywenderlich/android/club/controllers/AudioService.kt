@@ -46,7 +46,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import com.raywenderlich.android.club.BuildConfig
-import com.raywenderlich.android.club.ui.MainActivity
+import com.raywenderlich.android.club.ui.main.MainActivity
 import com.raywenderlich.android.club.R
 import com.raywenderlich.android.club.models.RoomInfo
 import com.raywenderlich.android.club.utils.lazyWithReset

@@ -32,41 +32,13 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.controllers.util
+package com.raywenderlich.android.club.utils
 
-import com.raywenderlich.android.agora.rtm.DefaultRtmClientListener
-import com.raywenderlich.android.club.models.Sendable
-import io.agora.rtm.RtmMessage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
+import android.view.View
+import androidx.annotation.IdRes
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 
-/**
- * A special variant of Agora's RtmClientListener interface which invokes callbacks
- * related to incoming messages using the given [coroutineScope], allowing for them
- * to be suspending functions.
- */
-class ClientListenerImpl(
-    private val coroutineScope: CoroutineScope,
-    private val onConnectionState: (Int) -> Unit,
-    private val onMessage: suspend (Sendable, String) -> Unit
-) : DefaultRtmClientListener() {
+fun <T : View> Fragment.view(@IdRes id: Int) = lazy { requireView().findViewById<T>(id) }
 
-    override fun onConnectionStateChanged(state: Int, reason: Int) {
-        onConnectionState(state)
-    }
-
-    override fun onMessageReceived(message: RtmMessage, peerId: String) {
-        // Decode the incoming message
-        val data = runCatching { Json.decodeFromString<Sendable>(message.text) }.getOrNull()
-            ?: run {
-                println("onMessageReceived() got unknown message from $peerId: ${message.text}")
-                return
-            }
-
-        coroutineScope.launch {
-            onMessage(data, peerId)
-        }
-    }
-}
+val Fragment.viewLifecycleScope get() = viewLifecycleOwner.lifecycleScope

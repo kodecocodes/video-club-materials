@@ -37,9 +37,11 @@ package com.raywenderlich.android.club
 import android.app.Application
 import android.content.Context
 import com.raywenderlich.android.club.controllers.SessionManager
+import com.raywenderlich.android.club.controllers.persistence.SettingsRepository
 
 class App : Application() {
     val sessionManager by lazy { SessionManager(this) }
+    val settingsRepository by lazy { SettingsRepository(this) }
 }
 
 val Context.app: App get() = applicationContext as App

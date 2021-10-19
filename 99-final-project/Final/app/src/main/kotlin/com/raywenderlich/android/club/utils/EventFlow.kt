@@ -32,54 +32,13 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.ui
+package com.raywenderlich.android.club.utils
 
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.widget.TextView
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
-import androidx.recyclerview.widget.RecyclerView
-import com.raywenderlich.android.club.R
-import com.raywenderlich.android.club.models.Room
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
-private val callback = object : DiffUtil.ItemCallback<Room>() {
-    override fun areItemsTheSame(oldItem: Room, newItem: Room): Boolean {
-        return oldItem == newItem
-    }
-
-    override fun areContentsTheSame(oldItem: Room, newItem: Room): Boolean {
-        return oldItem.roomId == newItem.roomId
-    }
-}
-
-class RoomListAdapter : ListAdapter<Room, RoomViewHolder>(callback) {
-
-    private val _itemClickEvents = MutableSharedFlow<Room>(extraBufferCapacity = 1)
-    val itemClickEvents: Flow<Room> = _itemClickEvents
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RoomViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.list_item_room, parent, false)
-        return RoomViewHolder(view)
-    }
-
-    override fun onBindViewHolder(holder: RoomViewHolder, position: Int) {
-        val room = getItem(position)
-
-        holder.idText.text = room.roomId.toString()
-        holder.hostText.text = room.hostId.value.toString()
-
-        holder.itemView.setOnClickListener {
-            _itemClickEvents.tryEmit(room)
-        }
-    }
-}
-
-class RoomViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-    val idText = view.findViewById<TextView>(R.id.text_id)
-    val hostText = view.findViewById<TextView>(R.id.text_host)
-}
+/**
+ * Creates a [MutableSharedFlow] that holds exactly 1 element
+ * and distributes it to subscribers (like an RxJava PublishSubject).
+ */
+@Suppress("FunctionName")
+fun <T> EventFlow() = MutableSharedFlow<T>(extraBufferCapacity = 1)

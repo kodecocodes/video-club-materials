@@ -32,41 +32,12 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.controllers.util
+package com.raywenderlich.android.club.models
 
-import com.raywenderlich.android.agora.rtm.DefaultRtmClientListener
-import com.raywenderlich.android.club.models.Sendable
-import io.agora.rtm.RtmMessage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
-
-/**
- * A special variant of Agora's RtmClientListener interface which invokes callbacks
- * related to incoming messages using the given [coroutineScope], allowing for them
- * to be suspending functions.
- */
-class ClientListenerImpl(
-    private val coroutineScope: CoroutineScope,
-    private val onConnectionState: (Int) -> Unit,
-    private val onMessage: suspend (Sendable, String) -> Unit
-) : DefaultRtmClientListener() {
-
-    override fun onConnectionStateChanged(state: Int, reason: Int) {
-        onConnectionState(state)
-    }
-
-    override fun onMessageReceived(message: RtmMessage, peerId: String) {
-        // Decode the incoming message
-        val data = runCatching { Json.decodeFromString<Sendable>(message.text) }.getOrNull()
-            ?: run {
-                println("onMessageReceived() got unknown message from $peerId: ${message.text}")
-                return
-            }
-
-        coroutineScope.launch {
-            onMessage(data, peerId)
-        }
-    }
+sealed class LoginState {
+    object Connecting : LoginState()
+    data class Connected(val user: User) : LoginState()
+    object Reconnecting : LoginState()
+    object Disconnected : LoginState()
+    object Aborted : LoginState()
 }

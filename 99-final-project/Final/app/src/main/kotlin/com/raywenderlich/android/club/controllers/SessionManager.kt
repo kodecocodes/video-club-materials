@@ -46,13 +46,11 @@ import io.agora.rtm.RtmChannel
 import io.agora.rtm.RtmChannelMember
 import io.agora.rtm.RtmClient
 import io.agora.rtm.RtmMessage
+import io.agora.rtm.RtmStatusCode.ConnectionState.*
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -92,7 +90,7 @@ class SessionManager(
 
     /* Private logic */
 
-    private val _connectionStateEvents = MutableStateFlow(ConnectionState.Disconnected)
+    private val _connectionStateEvents = MutableStateFlow(CONNECTION_STATE_DISCONNECTED)
     private val _openRoomEvents = MutableStateFlow(emptySet<Room>())
     private val _connectedRoomEvents = MutableStateFlow<RoomSession?>(null)
 
@@ -111,7 +109,8 @@ class SessionManager(
     private val coroutineScope = CoroutineScope(dispatcher)
 
     // Currently logged-in user; set to non-null after login
-    private var currentUser: User? = null
+    private val currentUserEvents = MutableStateFlow<User?>(null)
+    private val currentUser get() = currentUserEvents.value
 
     // Reference to lobby channel; set to non-null after login
     private var lobbyChannel: RtmChannel? = null
@@ -144,7 +143,19 @@ class SessionManager(
     /**
      * A Flow of events representing the connection status of the user to the Agora system.
      */
-    val connectionStateEvents: Flow<ConnectionState> = _connectionStateEvents
+    val connectionStateEvents: Flow<LoginState> =
+        combine(_connectionStateEvents, currentUserEvents) { rtmState, user ->
+            // Convert the Agora session status & knowledge about the logged-in user
+            // into a dedicated state object for consumers
+            when (rtmState) {
+                CONNECTION_STATE_DISCONNECTED -> LoginState.Disconnected
+                CONNECTION_STATE_RECONNECTING -> LoginState.Reconnecting
+                CONNECTION_STATE_ABORTED -> LoginState.Aborted
+                CONNECTION_STATE_CONNECTING -> LoginState.Connecting
+                CONNECTION_STATE_CONNECTED -> user?.let { LoginState.Connected(it) }
+                else -> null
+            }
+        }.filterNotNull()
 
     /**
      * A Flow of events representing the current list of open rooms that a user can join.
@@ -173,7 +184,7 @@ class SessionManager(
 
             // Sign into Agora RTM system and hold onto the credentials
             client.awaitLogin(tokenResponse.token.value, userName)
-            currentUser = User(userId, userName, tokenResponse.token)
+            currentUserEvents.value = User(userId, userName, tokenResponse.token)
 
             // Finally, log into the common "lobby" channel,
             // which will be used to communicate open rooms to all logged-in users
@@ -201,7 +212,7 @@ class SessionManager(
 
             // Sign out of the system completely
             client.awaitLogout()
-            currentUser = null
+            currentUserEvents.value = null
         }
     }
 
@@ -327,7 +338,7 @@ class SessionManager(
         // and only for members who have raised their hand
         val currentUser = currentUser ?: return
         val connection = roomConnection ?: return
-        
+
         if (connection.room.hostId != currentUser.id) return
         if (!member.raisedHand) return
 

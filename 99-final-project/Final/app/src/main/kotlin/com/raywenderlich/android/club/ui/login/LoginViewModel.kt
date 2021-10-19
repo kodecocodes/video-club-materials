@@ -32,41 +32,63 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.controllers.util
+package com.raywenderlich.android.club.ui.login
 
-import com.raywenderlich.android.agora.rtm.DefaultRtmClientListener
-import com.raywenderlich.android.club.models.Sendable
-import io.agora.rtm.RtmMessage
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.raywenderlich.android.club.controllers.SessionManager
+import com.raywenderlich.android.club.controllers.persistence.SettingsRepository
+import com.raywenderlich.android.club.utils.EventFlow
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.serialization.decodeFromString
-import kotlinx.serialization.json.Json
 
-/**
- * A special variant of Agora's RtmClientListener interface which invokes callbacks
- * related to incoming messages using the given [coroutineScope], allowing for them
- * to be suspending functions.
- */
-class ClientListenerImpl(
-    private val coroutineScope: CoroutineScope,
-    private val onConnectionState: (Int) -> Unit,
-    private val onMessage: suspend (Sendable, String) -> Unit
-) : DefaultRtmClientListener() {
+class LoginViewModel(
+    private val settingsRepository: SettingsRepository,
+    private val sessionManager: SessionManager
+) : ViewModel() {
 
-    override fun onConnectionStateChanged(state: Int, reason: Int) {
-        onConnectionState(state)
+    data class State(
+        val userName: String = "",
+        val isLoading: Boolean = false
+    )
+
+    sealed class Event {
+        object LoginFailure : Event()
+        object LoginSuccess : Event()
     }
 
-    override fun onMessageReceived(message: RtmMessage, peerId: String) {
-        // Decode the incoming message
-        val data = runCatching { Json.decodeFromString<Sendable>(message.text) }.getOrNull()
-            ?: run {
-                println("onMessageReceived() got unknown message from $peerId: ${message.text}")
-                return
+    private val _state = MutableStateFlow(State())
+    val state: Flow<State> = _state
+
+    private val _events = EventFlow<Event>()
+    val events: Flow<Event> = _events
+
+    init {
+        // If a user name was already chosen before, log in right away and redirect the user after
+        settingsRepository.getPersistedUserName()?.let { userName ->
+            doLogin(userName)
+        }
+    }
+
+    fun doLogin(userName: String) {
+        if (userName.isEmpty()) {
+            _events.tryEmit(Event.LoginFailure)
+            return
+        }
+
+        viewModelScope.launch {
+            _state.update {
+                it.copy(userName = userName, isLoading = true)
             }
 
-        coroutineScope.launch {
-            onMessage(data, peerId)
+            // Perform the login into the Agora system and store the user name persistently
+            // (for a real app, you'd want to use AccountManager instead of shared preferences for that)
+            sessionManager.login(userName)
+            settingsRepository.setPersistedUserName(userName)
+
+            _events.tryEmit(Event.LoginSuccess)
         }
     }
 }
