@@ -5,4 +5,6 @@
   <dimen name="card_padding_horizontal">16dp</dimen>
   <dimen name="card_padding_vertical">12dp</dimen>
   <dimen name="dialog_input_padding">8dp</dimen>
+
+  <dimen name="corner_radius">24dp</dimen>
 </resources>

@@ -184,7 +184,7 @@ class SessionManager(
 
             // Sign into Agora RTM system and hold onto the credentials
             client.awaitLogin(tokenResponse.token.value, userName)
-            currentUserEvents.value = User(userId, userName, tokenResponse.token)
+            currentUserEvents.value = User(userId, userName)
 
             // Finally, log into the common "lobby" channel,
             // which will be used to communicate open rooms to all logged-in users
@@ -219,12 +219,18 @@ class SessionManager(
     /**
      *
      */
-    suspend fun createRoom() {
+    suspend fun createRoom(roomName: String) {
         val currentUser = currentUser ?: return
 
         // Create a new channel with a random ID and then join it
         val roomId = UUID.randomUUID().toString()
-        val room = Room(currentUser.id, RoomId(roomId))
+        val room = Room(
+            host = currentUser,
+            coHosts = emptyList(),
+            name = roomName,
+            roomId = RoomId(roomId),
+            memberCount = 1,
+        )
         joinRoom(room)
     }
 
@@ -239,7 +245,7 @@ class SessionManager(
             leaveRoom()
 
             // Create and join the messaging channel for the room
-            val isBroadcaster = currentUser.id == room.hostId
+            val isBroadcaster = currentUser.id == room.host.id
             val channelListener = RoomChannelListener(client, coroutineScope)
             val channel = client.awaitJoinChannel(room.roomId.value, channelListener)
 
@@ -339,7 +345,7 @@ class SessionManager(
         val currentUser = currentUser ?: return
         val connection = roomConnection ?: return
 
-        if (connection.room.hostId != currentUser.id) return
+        if (connection.room.host.id != currentUser.id) return
         if (!member.raisedHand) return
 
         withContext(dispatcher) {

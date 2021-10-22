@@ -34,66 +34,69 @@
 
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="16dp">
+    android:layout_height="wrap_content"
+    android:paddingHorizontal="16dp"
+    tools:background="#fff"
+    tools:layout_gravity="bottom">
 
-    <ImageView
-        android:id="@+id/image_logo"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:adjustViewBounds="true"
-        android:contentDescription="@string/cd_logo"
-        app:layout_constraintBottom_toTopOf="@id/input_layout_room_name"
+    <View
+        android:id="@+id/closeHandle"
+        android:layout_width="64dp"
+        android:layout_height="8dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_bottom_sheet_handle"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.25"
-        app:layout_constraintVertical_chainStyle="packed"
-        app:layout_constraintWidth_percent="0.3"
-        app:srcCompat="@drawable/ic_notification" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/input_layout_room_name"
         style="@style/TextInputLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="32dp"
         app:hintEnabled="false"
-        app:layout_constraintBottom_toTopOf="@id/button_login"
-        app:layout_constraintTop_toBottomOf="@id/image_logo"
-        app:startIconDrawable="@drawable/ic_envelope">
+        app:layout_constraintTop_toBottomOf="@id/closeHandle"
+        app:startIconDrawable="@drawable/ic_bell">
 
         <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/input_user_name"
+            android:id="@+id/input_room_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/hint_user_name"
+            android:hint="@string/hint_room_title"
             android:padding="0dp" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <View
+        android:id="@+id/divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:background="#d0d0d0"
+        app:layout_constraintTop_toBottomOf="@id/input_layout_room_name" />
+
+    <TextView
+        android:id="@+id/textDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:gravity="center_horizontal"
+        android:text="@string/text_start_room_description"
+        app:layout_constraintTop_toBottomOf="@id/divider" />
+
     <com.google.android.material.button.MaterialButton
-        android:id="@+id/button_login"
+        android:id="@+id/button_start_room"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginVertical="16dp"
         android:paddingHorizontal="32dp"
         android:paddingVertical="16dp"
-        android:text="@string/label_login"
+        android:text="@string/label_lets_go"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/input_layout_room_name"
+        app:layout_constraintTop_toBottomOf="@id/textDescription"
         app:shapeAppearance="@style/CircleImageView" />
-
-    <ProgressBar
-        android:id="@+id/progress_bar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:elevation="16dp"
-        android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@id/button_login"
-        app:layout_constraintEnd_toEndOf="@id/button_login"
-        app:layout_constraintStart_toStartOf="@id/button_login"
-        app:layout_constraintTop_toTopOf="@id/button_login" />
 </androidx.constraintlayout.widget.ConstraintLayout>

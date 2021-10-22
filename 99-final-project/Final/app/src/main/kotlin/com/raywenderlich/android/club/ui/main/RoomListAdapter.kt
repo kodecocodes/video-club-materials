@@ -34,10 +34,17 @@
 
 package com.raywenderlich.android.club.ui.main
 
+import android.content.Context
+import android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+import android.text.style.DynamicDrawableSpan.ALIGN_BASELINE
+import android.text.style.DynamicDrawableSpan.ALIGN_BOTTOM
+import android.text.style.ImageSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.text.buildSpannedString
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
@@ -45,6 +52,7 @@ import com.raywenderlich.android.club.R
 import com.raywenderlich.android.club.models.Room
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlin.random.Random
 
 private val callback = object : DiffUtil.ItemCallback<Room>() {
     override fun areItemsTheSame(oldItem: Room, newItem: Room): Boolean {
@@ -69,17 +77,78 @@ class RoomListAdapter : ListAdapter<Room, RoomViewHolder>(callback) {
 
     override fun onBindViewHolder(holder: RoomViewHolder, position: Int) {
         val room = getItem(position)
+        val context = holder.itemView.context
 
-        holder.idText.text = room.roomId.toString()
-        holder.hostText.text = room.hostId.value.toString()
+        holder.textRoomName.text = room.name
+        holder.textHostNames.text = hostNamesAsSpannable(context, room)
+        holder.textMemberCount.text = memberCountAsSpannable(context, room)
+
+        holder.imageHost.setImageResource(randomPerson())
+        holder.imageCoHost.setImageResource(randomPerson())
 
         holder.itemView.setOnClickListener {
             _itemClickEvents.tryEmit(room)
         }
     }
+
+    private fun randomPerson(): Int =
+        when (Random.nextInt(7)) {
+            0 -> R.drawable.person1
+            1 -> R.drawable.person2
+            2 -> R.drawable.person3
+            3 -> R.drawable.person4
+            4 -> R.drawable.person5
+            5 -> R.drawable.person6
+            else -> R.drawable.person7
+        }
+
+    private fun hostNamesAsSpannable(context: Context, room: Room): CharSequence {
+        // Concatenate the name of the room's host & up to 4 co-hosts
+        // and combine them with some speech bubble icons'
+        return buildSpannedString {
+            append(room.host.name)
+            append("  ")
+            setSpan(
+                ImageSpan(context, R.drawable.ic_message, ALIGN_BASELINE),
+                length - 1,
+                length,
+                SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+
+            for (coHost in room.coHosts.take(4)) {
+                append('\n')
+                append(coHost.name)
+                append("  ")
+                setSpan(
+                    ImageSpan(context, R.drawable.ic_message, ALIGN_BASELINE),
+                    length - 1,
+                    length,
+                    SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+        }
+    }
+
+    private fun memberCountAsSpannable(context: Context, room: Room): CharSequence {
+        // Format the member count with an icon
+        return buildSpannedString {
+            append(room.memberCount.toString())
+            append("  ")
+            setSpan(
+                ImageSpan(context, R.drawable.ic_account, ALIGN_BOTTOM),
+                length - 1,
+                length,
+                SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+    }
 }
 
 class RoomViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-    val idText = view.findViewById<TextView>(R.id.text_id)
-    val hostText = view.findViewById<TextView>(R.id.text_host)
+    val textRoomName = view.findViewById<TextView>(R.id.text_room_name)
+    val textHostNames = view.findViewById<TextView>(R.id.text_host_names)
+    val textMemberCount = view.findViewById<TextView>(R.id.text_member_count)
+
+    val imageHost = view.findViewById<ImageView>(R.id.image_host_profile)
+    val imageCoHost = view.findViewById<ImageView>(R.id.image_co_host_profile)
 }

@@ -44,10 +44,16 @@ value class RoomId(val value: String)
 
 @Serializable
 data class Room(
-    @SerialName("host_id")
-    val hostId: UserId,
+    @SerialName("host")
+    val host: User,
+    @SerialName("co_hosts")
+    val coHosts: List<User>,
     @SerialName("room_id")
     val roomId: RoomId,
+    @SerialName("room_name")
+    val name: String,
+    @SerialName("member_count")
+    val memberCount: Int,
 )
 
 @Serializable

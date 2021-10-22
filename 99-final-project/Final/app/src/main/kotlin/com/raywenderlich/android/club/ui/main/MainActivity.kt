@@ -38,6 +38,7 @@ import android.Manifest
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -48,20 +49,28 @@ import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.raywenderlich.android.club.R
+import com.raywenderlich.android.club.controllers.AudioService
+import com.raywenderlich.android.club.models.RoomInfo
 import com.raywenderlich.android.club.utils.RequestPermission
-import com.raywenderlich.android.club.utils.openAppSettings
 import com.raywenderlich.android.club.utils.mainViewModel
+import com.raywenderlich.android.club.utils.openAppSettings
 import com.raywenderlich.android.club.utils.view
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+private const val TAG_BOTTOM_SHEET = "bottom-sheet"
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
     /* UI */
 
     private val buttonStartRoom by view<Button>(R.id.button_start_room)
-    private val bottomContainerTest by view<View>(R.id.bottom_container)
+    private val bottomContainer by view<TextView>(R.id.bottom_container)
 
     /* Logic */
 
@@ -85,13 +94,18 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
             showStartRoomDialog()
         }
 
-        // Initialize ViewModel
+        // Initialize ViewModel and listen to whichever room the user is listening to
         viewModel = mainViewModel(this)
+        viewModel.state
+            .map { it.connectedRoomInfo }
+            .distinctUntilChangedBy { it?.roomId }
+            .onEach { handleCurrentRoom(it) }
+            .launchIn(lifecycleScope)
 
         // Show initial screen
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
-                add(R.id.fragment_container, MainFragment())
+                add(R.id.main_fragment_container, MainFragment())
             }
         }
     }
@@ -99,16 +113,44 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     /* Listeners */
 
     private fun showStartRoomDialog() {
-        lifecycleScope.launch {
-            // Check if permission is granted first
-            ensureAudioPermission {
-                // TODO Actually show the UI for it
-                bottomContainerTest.isVisible = !bottomContainerTest.isVisible
-            }
+        // Check if permission is granted first
+        ensureAudioPermission {
+            CreateRoomBottomSheetFragment.newInstance()
+                .show(supportFragmentManager, TAG_BOTTOM_SHEET)
         }
     }
 
     /* Private */
+
+    private fun handleCurrentRoom(info: RoomInfo?) {
+        bottomContainer.text = info?.roomId?.toString() ?: ""
+        bottomContainer.isVisible = info != null
+
+        if (info != null) {
+            AudioService.start(this, info)
+
+            supportFragmentManager.commit {
+                setCustomAnimations(
+                    R.anim.slide_in_from_below, R.anim.slide_out_to_below,
+                    R.anim.slide_in_from_below, R.anim.slide_out_to_below
+                )
+                addToBackStack(null)
+                add(
+                    R.id.room_fragment_container,
+                    ActiveRoomBottomSheetFragment.newInstance(info),
+                    TAG_BOTTOM_SHEET
+                )
+            }
+        } else {
+            AudioService.stop(this)
+
+            with(supportFragmentManager) {
+                findFragmentByTag(TAG_BOTTOM_SHEET)?.let { fragment ->
+                    popBackStack()
+                }
+            }
+        }
+    }
 
     private fun ensureAudioPermission(block: suspend () -> Unit) {
         lifecycleScope.launch {

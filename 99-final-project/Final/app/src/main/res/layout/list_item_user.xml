@@ -34,6 +34,7 @@
 
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:orientation="vertical">
@@ -43,20 +44,46 @@
         android:layout_height="96dp">
 
         <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/user_image"
+            android:id="@+id/image_speaker_outline"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_margin="4dp"
+            android:background="@drawable/bg_speaker_outline"
+            android:visibility="invisible"
+            tools:visibility="visible" />
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/image_user"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="12dp"
             android:scaleType="centerCrop"
             app:shapeAppearanceOverlay="@style/CircleImageView"
-            app:srcCompat="@color/colorAccent" />
+            tools:src="@tools:sample/avatars" />
 
         <ImageView
             android:id="@+id/image_raised_hand"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="4dp"
+            android:background="@drawable/bg_circle"
+            android:elevation="4dp"
+            android:padding="4dp"
+            app:srcCompat="@drawable/ic_hand"
+            app:tint="@color/colorText" />
+
+        <ImageView
+            android:id="@+id/image_microphone_off"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_gravity="top|end"
+            android:layout_gravity="bottom|end"
             android:layout_margin="8dp"
-            app:srcCompat="@drawable/ic_notification" />
+            android:background="@drawable/bg_circle"
+            android:elevation="4dp"
+            android:padding="4dp"
+            app:srcCompat="@drawable/ic_microphone_off"
+            app:tint="@color/colorText" />
     </FrameLayout>
 
     <TextView
@@ -64,5 +91,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:gravity="center_horizontal" />
+        android:gravity="center_horizontal"
+        tools:text="User Name" />
 </LinearLayout>

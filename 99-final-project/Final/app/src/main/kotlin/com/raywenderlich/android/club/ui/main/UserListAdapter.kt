@@ -80,6 +80,6 @@ class UserListAdapter : ListAdapter<MemberInfo, UserViewHolder>(callback) {
 
 class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
     val nameText = view.findViewById<TextView>(R.id.user_name)
-    val image = view.findViewById<ImageView>(R.id.user_image)
+    val image = view.findViewById<ImageView>(R.id.image_user)
     val raisedHandImage = view.findViewById<ImageView>(R.id.image_raised_hand)
 }

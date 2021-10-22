@@ -34,7 +34,51 @@
 
 package com.raywenderlich.android.club.ui.main
 
-import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import android.os.Bundle
+import android.view.View
+import android.widget.Button
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.get
+import com.raywenderlich.android.club.R
+import com.raywenderlich.android.club.models.RoomInfo
+import com.raywenderlich.android.club.utils.view
+import com.raywenderlich.android.club.utils.viewLifecycleScope
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
-class RoomBottomSheetFragment : BottomSheetDialogFragment() {
+class ActiveRoomBottomSheetFragment : Fragment(R.layout.fragment_active_room) {
+
+    companion object {
+        fun newInstance(info: RoomInfo) = ActiveRoomBottomSheetFragment().apply {
+            // todo send extras to the fragment
+        }
+    }
+
+    /* UI */
+
+    private val buttonLeaveRoom by view<Button>(R.id.button_leave_room)
+
+    /* Logic */
+
+    private lateinit var viewModel: MainViewModel
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // Connect to activity's ViewModel and subscribe to its state
+        viewModel = ViewModelProvider(requireActivity()).get()
+        viewModel.state
+            .onEach { handleState(it) }
+            .launchIn(viewLifecycleScope)
+
+        // Setup UI
+        buttonLeaveRoom.setOnClickListener {
+            viewModel.leaveRoom()
+        }
+    }
+
+    private fun handleState(state: MainViewModel.State) {
+
+    }
 }

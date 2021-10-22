@@ -47,9 +47,7 @@ data class User(
     @SerialName("id")
     val id: UserId,
     @SerialName("name")
-    val name: String,
-    @SerialName("rtm_token")
-    val rtmToken: Token
+    val name: String
 )
 
 @Serializable

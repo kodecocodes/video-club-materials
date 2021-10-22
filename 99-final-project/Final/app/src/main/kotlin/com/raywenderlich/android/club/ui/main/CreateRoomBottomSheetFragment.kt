@@ -35,39 +35,50 @@
 package com.raywenderlich.android.club.ui.main
 
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
-import androidx.fragment.app.Fragment
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.EditText
+import android.widget.Toast
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.get
-import androidx.recyclerview.widget.DividerItemDecoration
-import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.RecyclerView.VERTICAL
-import com.google.android.material.button.MaterialButton
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.raywenderlich.android.club.R
-import com.raywenderlich.android.club.models.Room
 import com.raywenderlich.android.club.utils.view
 import com.raywenderlich.android.club.utils.viewLifecycleScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
-class MainFragment : Fragment(R.layout.fragment_main) {
+/**
+ * Bottom sheet fragment for creating a room.
+ */
+class CreateRoomBottomSheetFragment : BottomSheetDialogFragment() {
+
+    companion object {
+        @JvmStatic
+        fun newInstance() = CreateRoomBottomSheetFragment()
+    }
 
     /* UI */
 
-    private val buttonUser by view<MaterialButton>(R.id.button_user)
-    private val rvRooms by view<RecyclerView>(R.id.rv_rooms)
+    private val inputRoomName by view<EditText>(R.id.input_room_name)
+    private val buttonStartRoom by view<Button>(R.id.button_start_room)
 
     /* Logic */
 
     private lateinit var viewModel: MainViewModel
-    private val rvRoomsAdapter = RoomListAdapter()
+
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        return inflater.inflate(R.layout.fragment_create_room, container, false)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        // Setup UI
-        rvRooms.adapter = rvRoomsAdapter
-        rvRooms.addItemDecoration(DividerItemDecoration(requireContext(), VERTICAL))
 
         // Connect to activity's ViewModel and subscribe to its state
         viewModel = ViewModelProvider(requireActivity()).get()
@@ -75,18 +86,28 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             .onEach { handleState(it) }
             .launchIn(viewLifecycleScope)
 
-        // Handle clicks on list items
-        rvRoomsAdapter.itemClickEvents
-            .onEach { joinRoom(it) }
-            .launchIn(viewLifecycleScope)
+        // Setup UI
+        buttonStartRoom.setOnClickListener {
+            createRoomAndDismiss()
+        }
     }
 
     private fun handleState(state: MainViewModel.State) {
-        buttonUser.text = state.userShortName ?: ""
-        rvRoomsAdapter.submitList(state.openRooms)
+        if (inputRoomName.text.isEmpty() && state.userLongName != null) {
+            inputRoomName.setText(getString(R.string.default_room_name, state.userLongName))
+        }
     }
 
-    private fun joinRoom(room: Room) {
-        viewModel.joinRoom(room)
+    private fun createRoomAndDismiss() {
+        // Validate input
+        val roomName = inputRoomName.text.toString()
+
+        if (roomName.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.toast_missing_room_name, Toast.LENGTH_SHORT)
+                .show()
+        } else {
+            viewModel.createRoom(roomName)
+            dismiss()
+        }
     }
 }
