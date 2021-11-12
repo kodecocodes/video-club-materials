@@ -36,7 +36,6 @@ package com.raywenderlich.android.club.controllers
 
 import android.content.Context
 import com.raywenderlich.android.agora.rtm.*
-import com.raywenderlich.android.club.BuildConfig
 import com.raywenderlich.android.club.api.ServerApi
 import com.raywenderlich.android.club.controllers.util.ClientListenerImpl
 import com.raywenderlich.android.club.controllers.util.RoomChannelListener
@@ -129,6 +128,7 @@ class SessionManager(
                     RoomSession(
                         info = RoomInfo(
                             roomId = RoomId(value.channel.id),
+                            roomName = value.room.name,
                             token = value.token,
                             userId = requireNotNull(currentUser?.id),
                             isBroadcaster = value.myInfo.role != MemberRole.Audience
@@ -250,13 +250,17 @@ class SessionManager(
             val channelListener = RoomChannelListener(client, coroutineScope)
             val channel = client.awaitJoinChannel(room.roomId.value, channelListener)
 
+            // Store and broadcast the initial attributes of ourselves
             val role = if (isBroadcaster) MemberRole.Host else MemberRole.Audience
+            val microphoneOff = !isBroadcaster
             val memberInfo = MemberInfo(
                 agoraId = currentUser.name,
                 userName = currentUser.name,
                 role = role,
-                raisedHand = false
+                raisedHand = false,
+                microphoneOff = microphoneOff
             )
+            client.awaitAddOrUpdateLocalUserAttributes(memberInfo.asAttributeList())
 
             // Initialize local listener's understanding of the channel's members
             // (for new rooms: just the host for now, otherwise all current members)

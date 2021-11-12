@@ -38,7 +38,8 @@ data class MemberInfo(
     val agoraId: String,
     val userName: String,
     val role: MemberRole,
-    val raisedHand: Boolean
+    val raisedHand: Boolean,
+    val microphoneOff: Boolean,
 )
 
 enum class MemberRole(val id: String) {

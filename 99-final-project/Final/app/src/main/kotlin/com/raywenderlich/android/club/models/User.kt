@@ -39,10 +39,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
-@JvmInline
-value class UserId(@IntRange(from = 0) val value: Int)
-
-@Serializable
 data class User(
     @SerialName("id")
     val id: UserId,

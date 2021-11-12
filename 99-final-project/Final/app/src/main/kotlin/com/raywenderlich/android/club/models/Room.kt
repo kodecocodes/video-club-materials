@@ -63,6 +63,8 @@ data class RoomList(
 data class RoomInfo(
     @SerialName("room_id")
     val roomId: RoomId,
+    @SerialName("room_name")
+    val roomName: String,
     @SerialName("token")
     val token: Token,
     @SerialName("user_id")

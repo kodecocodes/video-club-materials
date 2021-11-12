@@ -46,6 +46,7 @@ import io.agora.rtm.RtmClient
 // The app uses it to share common state with the room, such as the user's name or
 // whether they have raised their hand
 private const val ATTR_HAND_RAISED = "hand-raised"
+private const val ATTR_MIC_OFF = "microphone-off"
 private const val ATTR_ROLE = "role"
 
 /* Conversions between Agora and app */
@@ -69,24 +70,29 @@ fun List<RtmAttribute>.asMemberInfo(peerId: String): MemberInfo {
         agoraId = peerId,
         userName = peerId, // TODO
         role = memberRoleOf(map[ATTR_ROLE]),
-        raisedHand = map[ATTR_HAND_RAISED]?.toBooleanStrictOrNull() ?: false
+        raisedHand = map[ATTR_HAND_RAISED]?.toBooleanStrictOrNull() ?: false,
+        microphoneOff = map[ATTR_MIC_OFF]?.toBooleanStrictOrNull() ?: true,
     )
 }
 
 fun MemberInfo.asAttributeList() =
-    createAttributeList(this.role, this.raisedHand)
+    createAttributeList(this.role, this.raisedHand, this.microphoneOff)
 
 fun createAttributeList(
     role: MemberRole,
-    isRaisedHand: Boolean
+    isRaisedHand: Boolean,
+    isMicrophoneOff: Boolean,
 ): List<RtmAttribute> =
     listOfNotNull(
         RtmAttribute(ATTR_HAND_RAISED, isRaisedHand.toString()),
+        RtmAttribute(ATTR_MIC_OFF, isMicrophoneOff.toString()),
         RtmAttribute(ATTR_ROLE, role.id)
     )
 
 private fun memberRoleOf(value: String?): MemberRole {
-    return MemberRole.values()
+    return (MemberRole.values()
         .firstOrNull { it.id == value }
-        ?: MemberRole.Audience
+        ?: MemberRole.Audience).also {
+        println("memberRoleOf $value --> $it")
+    }
 }

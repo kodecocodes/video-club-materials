@@ -50,6 +50,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.raywenderlich.android.club.R
 import com.raywenderlich.android.club.models.Room
+import com.raywenderlich.android.club.utils.profileImageRes
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlin.random.Random
@@ -83,24 +84,18 @@ class RoomListAdapter : ListAdapter<Room, RoomViewHolder>(callback) {
         holder.textHostNames.text = hostNamesAsSpannable(context, room)
         holder.textMemberCount.text = memberCountAsSpannable(context, room)
 
-        holder.imageHost.setImageResource(randomPerson())
-        holder.imageCoHost.setImageResource(randomPerson())
+        holder.imageHost.setImageResource(room.host.profileImageRes())
+        val coHost = room.coHosts.firstOrNull()
+        if (coHost != null) {
+            holder.imageCoHost.setImageResource(coHost.profileImageRes())
+        } else {
+            holder.imageCoHost.setImageDrawable(null)
+        }
 
         holder.itemView.setOnClickListener {
             _itemClickEvents.tryEmit(room)
         }
     }
-
-    private fun randomPerson(): Int =
-        when (Random.nextInt(7)) {
-            0 -> R.drawable.person1
-            1 -> R.drawable.person2
-            2 -> R.drawable.person3
-            3 -> R.drawable.person4
-            4 -> R.drawable.person5
-            5 -> R.drawable.person6
-            else -> R.drawable.person7
-        }
 
     private fun hostNamesAsSpannable(context: Context, room: Room): CharSequence {
         // Concatenate the name of the room's host & up to 4 co-hosts

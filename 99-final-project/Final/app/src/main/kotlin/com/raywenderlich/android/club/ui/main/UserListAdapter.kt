@@ -45,6 +45,8 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.raywenderlich.android.club.R
 import com.raywenderlich.android.club.models.MemberInfo
+import com.raywenderlich.android.club.models.MemberRole
+import com.raywenderlich.android.club.utils.profileImageRes
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 
@@ -73,7 +75,10 @@ class UserListAdapter : ListAdapter<MemberInfo, UserViewHolder>(callback) {
         val user = getItem(position)
 
         holder.nameText.text = user.userName
+        holder.image.setImageResource(user.profileImageRes())
+        holder.speakerImage.isVisible = user.role != MemberRole.Audience
         holder.raisedHandImage.isVisible = user.raisedHand
+        holder.microphoneOffImage.isVisible = user.microphoneOff
         holder.itemView.setOnClickListener { _itemClickEvents.tryEmit(user) }
     }
 }
@@ -81,5 +86,7 @@ class UserListAdapter : ListAdapter<MemberInfo, UserViewHolder>(callback) {
 class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
     val nameText = view.findViewById<TextView>(R.id.user_name)
     val image = view.findViewById<ImageView>(R.id.image_user)
+    val speakerImage = view.findViewById<ImageView>(R.id.image_speaker_outline)
     val raisedHandImage = view.findViewById<ImageView>(R.id.image_raised_hand)
+    val microphoneOffImage = view.findViewById<ImageView>(R.id.image_microphone_off)
 }

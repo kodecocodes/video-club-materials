@@ -36,7 +36,6 @@ package com.raywenderlich.android.club.ui.main
 
 import android.Manifest
 import android.os.Bundle
-import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -97,7 +96,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         // Initialize ViewModel and listen to whichever room the user is listening to
         viewModel = mainViewModel(this)
         viewModel.state
-            .map { it.connectedRoomInfo }
+            .map { it.connectedRoom }
             .distinctUntilChangedBy { it?.roomId }
             .onEach { handleCurrentRoom(it) }
             .launchIn(lifecycleScope)
@@ -137,17 +136,15 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
                 addToBackStack(null)
                 add(
                     R.id.room_fragment_container,
-                    ActiveRoomBottomSheetFragment.newInstance(info),
+                    ActiveRoomBottomSheetFragment.newInstance(),
                     TAG_BOTTOM_SHEET
                 )
             }
         } else {
             AudioService.stop(this)
 
-            with(supportFragmentManager) {
-                findFragmentByTag(TAG_BOTTOM_SHEET)?.let { fragment ->
-                    popBackStack()
-                }
+            supportFragmentManager.findFragmentByTag(TAG_BOTTOM_SHEET)?.let {
+                supportFragmentManager.popBackStack()
             }
         }
     }

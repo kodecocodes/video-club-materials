@@ -46,12 +46,14 @@ import kotlinx.coroutines.launch
  * The MainViewModel is connected to the MainActivity
  * and holds a life-long reference to the app's sessions.
  */
+private val memberComparator = compareBy(MemberInfo::role) then compareBy(MemberInfo::userName)
+
 class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
 
     data class State(
         private val loginState: LoginState? = null,
         val openRooms: List<Room> = emptyList(),
-        val connectedRoomInfo: RoomInfo? = null,
+        val connectedRoom: RoomInfo? = null,
         val connectedRoomMembers: List<MemberInfo> = emptyList()
     ) {
         val userLongName: String? = loginState?.userLongName()
@@ -71,31 +73,11 @@ class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
             }
             .launchIn(viewModelScope)
 
-        // todo uncomment and remove fake data
-        _state.update { it.copy(openRooms = listOf(
-            Room(host=User(UserId(123), "Marco"), coHosts = listOf(User(UserId(456), "Alice")), roomId=RoomId("abc"), name="Crypto Is Dumb", memberCount = 16),
-            Room(host=User(UserId(111), "Bob"), coHosts = listOf(User(UserId(222), "Tyrone")), roomId=RoomId("def"), name="NFL Daily", memberCount = 5),
-            Room(host=User(UserId(333), "Maria"), coHosts = listOf(User(UserId(444), "Annyce"), User(UserId(777), "Tanya")), roomId=RoomId("ggg"), name="Tech Diversity 101", memberCount = 240),
-            Room(host=User(UserId(123), "Marco"), coHosts = listOf(User(UserId(456), "Alice")), roomId=RoomId("abc"), name="Crypto Is Dumb", memberCount = 16),
-            Room(host=User(UserId(111), "Bob"), coHosts = listOf(User(UserId(222), "Tyrone")), roomId=RoomId("def"), name="NFL Daily", memberCount = 5),
-            Room(host=User(UserId(333), "Maria"), coHosts = listOf(User(UserId(444), "Annyce"), User(UserId(777), "Tanya")), roomId=RoomId("ggg"), name="Tech Diversity 101", memberCount = 240),
-            Room(host=User(UserId(123), "Marco"), coHosts = listOf(User(UserId(456), "Alice")), roomId=RoomId("abc"), name="Crypto Is Dumb", memberCount = 16),
-            Room(host=User(UserId(111), "Bob"), coHosts = listOf(User(UserId(222), "Tyrone")), roomId=RoomId("def"), name="NFL Daily", memberCount = 5),
-            Room(host=User(UserId(333), "Maria"), coHosts = listOf(User(UserId(444), "Annyce"), User(UserId(777), "Tanya")), roomId=RoomId("ggg"), name="Tech Diversity 101", memberCount = 240),
-            Room(host=User(UserId(123), "Marco"), coHosts = listOf(User(UserId(456), "Alice")), roomId=RoomId("abc"), name="Crypto Is Dumb", memberCount = 16),
-            Room(host=User(UserId(111), "Bob"), coHosts = listOf(User(UserId(222), "Tyrone")), roomId=RoomId("def"), name="NFL Daily", memberCount = 5),
-            Room(host=User(UserId(333), "Maria"), coHosts = listOf(User(UserId(444), "Annyce"), User(UserId(777), "Tanya")), roomId=RoomId("ggg"), name="Tech Diversity 101", memberCount = 240),
-            Room(host=User(UserId(123), "Marco"), coHosts = listOf(User(UserId(456), "Alice")), roomId=RoomId("abc"), name="Crypto Is Dumb", memberCount = 16),
-            Room(host=User(UserId(111), "Bob"), coHosts = listOf(User(UserId(222), "Tyrone")), roomId=RoomId("def"), name="NFL Daily", memberCount = 5),
-            Room(host=User(UserId(333), "Maria"), coHosts = listOf(User(UserId(444), "Annyce"), User(UserId(777), "Tanya")), roomId=RoomId("ggg"), name="Tech Diversity 101", memberCount = 240),
-        )) }
-//        sessionManager.openRoomEvents
-//            .onEach { rooms ->
-//                _state.update {
-//                    it.copy(openRooms = rooms)
-//                }
-//            }
-//            .launchIn(viewModelScope)
+        sessionManager.openRoomEvents
+            .onEach { rooms ->
+                _state.update { it.copy(openRooms = rooms) }
+            }
+            .launchIn(viewModelScope)
 
         sessionManager.connectedRoomEvents
             .onEach { session ->
@@ -110,39 +92,35 @@ class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
             currentMembersJob?.cancel()
             _state.update {
                 it.copy(
-                    connectedRoomInfo = null,
+                    connectedRoom = null,
                     connectedRoomMembers = emptyList()
                 )
             }
 
         } else {
-            val currentRoomInfo = _state.value.connectedRoomInfo
-            if (session.info.roomId != currentRoomInfo?.roomId) {
+            val currentRoom = _state.value.connectedRoom
+            if (session.info.roomId != currentRoom?.roomId) {
                 // First room joined or switched to a new room;
                 // remove previous subscription to members of the room
                 // and create a fresh one to forward member events to the UI
                 currentMembersJob?.cancel()
                 currentMembersJob = session.memberEvents
                     .onEach { members ->
-                        _state.update { it.copy(connectedRoomMembers = members) }
+                        _state.update {
+                            it.copy(connectedRoomMembers = members.sortedWith(memberComparator))
+                        }
                     }
                     .launchIn(viewModelScope)
             }
 
             // Always update the room info object
-            _state.update { it.copy(connectedRoomInfo = session.info) }
+            _state.update { it.copy(connectedRoom = session.info) }
         }
     }
 
     override fun onCleared() {
         super.onCleared()
         logout()
-    }
-
-    fun login(userName: String) {
-        viewModelScope.launch {
-            sessionManager.login(userName)
-        }
     }
 
     fun logout() {

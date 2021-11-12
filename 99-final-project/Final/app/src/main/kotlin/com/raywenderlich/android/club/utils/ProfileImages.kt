@@ -32,13 +32,31 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.models
+package com.raywenderlich.android.club.utils
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import androidx.annotation.DrawableRes
+import com.raywenderlich.android.club.R
+import com.raywenderlich.android.club.models.MemberInfo
+import com.raywenderlich.android.club.models.User
 
-@Serializable
-data class TokenResponse(
-    @SerialName("token")
-    val token: Token
-)
+@DrawableRes
+fun User.profileImageRes(): Int =
+    profileImageOf(this.name)
+
+@DrawableRes
+fun MemberInfo.profileImageRes(): Int =
+    profileImageOf(this.userName)
+
+// Temporary code for associating a user with a profile image
+// without actually having to load remote images.
+// Take the user's name and derive a numerical value from its hash code
+private fun profileImageOf(userName: String): Int =
+    when (userName.hashCode() % 7) {
+        0 -> R.drawable.person1
+        1 -> R.drawable.person2
+        2 -> R.drawable.person3
+        3 -> R.drawable.person4
+        4 -> R.drawable.person5
+        5 -> R.drawable.person6
+        else -> R.drawable.person7
+    }

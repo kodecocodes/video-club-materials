@@ -37,11 +37,12 @@ package com.raywenderlich.android.club.ui.main
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.get
+import androidx.recyclerview.widget.RecyclerView
 import com.raywenderlich.android.club.R
-import com.raywenderlich.android.club.models.RoomInfo
 import com.raywenderlich.android.club.utils.view
 import com.raywenderlich.android.club.utils.viewLifecycleScope
 import kotlinx.coroutines.flow.launchIn
@@ -50,18 +51,19 @@ import kotlinx.coroutines.flow.onEach
 class ActiveRoomBottomSheetFragment : Fragment(R.layout.fragment_active_room) {
 
     companion object {
-        fun newInstance(info: RoomInfo) = ActiveRoomBottomSheetFragment().apply {
-            // todo send extras to the fragment
-        }
+        fun newInstance() = ActiveRoomBottomSheetFragment()
     }
 
     /* UI */
 
+    private val textRoomName by view<TextView>(R.id.text_room_name)
+    private val rvUsers by view<RecyclerView>(R.id.rv_users)
     private val buttonLeaveRoom by view<Button>(R.id.button_leave_room)
 
     /* Logic */
 
     private lateinit var viewModel: MainViewModel
+    private val rvUsersAdapter = UserListAdapter()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -73,12 +75,15 @@ class ActiveRoomBottomSheetFragment : Fragment(R.layout.fragment_active_room) {
             .launchIn(viewLifecycleScope)
 
         // Setup UI
+        rvUsers.adapter = rvUsersAdapter
+
         buttonLeaveRoom.setOnClickListener {
             viewModel.leaveRoom()
         }
     }
 
     private fun handleState(state: MainViewModel.State) {
-
+        textRoomName.text = state.connectedRoom?.roomName
+        rvUsersAdapter.submitList(state.connectedRoomMembers)
     }
 }
