@@ -32,34 +32,10 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club
+package com.raywenderlich.android.club.models
 
-import android.app.Application
-import android.content.Context
-import com.raywenderlich.android.club.controllers.SessionManager
-import com.raywenderlich.android.club.controllers.persistence.SettingsRepository
-import com.raywenderlich.android.club.server.FakeServerApi
-import kotlin.time.Duration
-import kotlin.time.ExperimentalTime
+import kotlinx.serialization.Serializable
 
-@OptIn(ExperimentalTime::class)
-class App : Application() {
-
-    /* Injected dependencies */
-
-    val sessionManager by lazy {
-        SessionManager(
-            context = this,
-            appId = BuildConfig.AGORA_APP_ID,
-            serverApi = FakeServerApi(
-                agoraAppId = BuildConfig.AGORA_APP_ID,
-                agoraAppCertificate = BuildConfig.AGORA_APP_CERTIFICATE,
-                tokenExpiration = Duration.hours(1)
-            )
-        )
-    }
-
-    val settingsRepository by lazy { SettingsRepository(this) }
-}
-
-val Context.app: App get() = applicationContext as App
+@Serializable
+@JvmInline
+value class RoomId(val value: String)

@@ -47,7 +47,7 @@ class RoomTests {
         val raw = """{"host_id":1234,"room_id":"room1"}"""
         val room = Json.decodeFromString<Room>(raw)
 
-        assertEquals(UserId(1234u), room.hostId)
+        assertEquals(UserId(1234), room.host.id)
         assertEquals(RoomId("room1"), room.roomId)
 
         val raw2 = Json.encodeToString(room)

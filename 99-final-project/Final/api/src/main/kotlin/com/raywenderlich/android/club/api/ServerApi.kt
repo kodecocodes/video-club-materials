@@ -32,34 +32,28 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club
+package com.raywenderlich.android.club.api
 
-import android.app.Application
-import android.content.Context
-import com.raywenderlich.android.club.controllers.SessionManager
-import com.raywenderlich.android.club.controllers.persistence.SettingsRepository
-import com.raywenderlich.android.club.server.FakeServerApi
-import kotlin.time.Duration
-import kotlin.time.ExperimentalTime
+import com.raywenderlich.android.club.models.RoomId
+import com.raywenderlich.android.club.models.Token
+import com.raywenderlich.android.club.models.UserId
 
-@OptIn(ExperimentalTime::class)
-class App : Application() {
+/**
+ * The common interface for communication between the app and a backend server,
+ * which generates authentication tokens for clients to join conversations.
+ */
+interface ServerApi {
+    /**
+     * Create an authentication token for "messaging".
+     * This is used to join and leave rooms on the Agora platform,
+     * but not actually to participate in audio communication.
+     * For that purpose, use [createRtcToken] instead.
+     */
+    suspend fun createRtmToken(userName: String): Token
 
-    /* Injected dependencies */
-
-    val sessionManager by lazy {
-        SessionManager(
-            context = this,
-            appId = BuildConfig.AGORA_APP_ID,
-            serverApi = FakeServerApi(
-                agoraAppId = BuildConfig.AGORA_APP_ID,
-                agoraAppCertificate = BuildConfig.AGORA_APP_CERTIFICATE,
-                tokenExpiration = Duration.hours(1)
-            )
-        )
-    }
-
-    val settingsRepository by lazy { SettingsRepository(this) }
+    /**
+     * Create an authentication token for "communications".
+     * This is used to participate in audio communication and broadcasts.
+     */
+    suspend fun createRtcToken(userId: UserId, roomId: RoomId, isBroadcaster: Boolean): Token
 }
-
-val Context.app: App get() = applicationContext as App

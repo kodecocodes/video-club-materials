@@ -38,9 +38,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-@Serializable
-@JvmInline
-value class RoomId(val value: String)
 
 @Serializable
 data class Room(

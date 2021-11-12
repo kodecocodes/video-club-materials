@@ -13,3 +13,5 @@ dependencyResolutionManagement {
 rootProject.name = "Club RW"
 include(":app")
 include(":agora-ktx")
+include(":api")
+include(":fake-server")

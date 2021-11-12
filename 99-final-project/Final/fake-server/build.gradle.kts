@@ -32,50 +32,31 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club.controllers
+plugins {
+    id("java-library")
+    kotlin("jvm")
+    kotlin("plugin.serialization")
+}
 
-import android.util.Log
-import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
-import com.raywenderlich.android.club.BuildConfig
-import com.raywenderlich.android.club.models.RoomId
-import com.raywenderlich.android.club.models.TokenResponse
-import com.raywenderlich.android.club.models.UserId
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.Json
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import okhttp3.logging.HttpLoggingInterceptor.Level.BODY
-import retrofit2.Retrofit
-import retrofit2.create
-import retrofit2.http.GET
-import retrofit2.http.Query
+val javaVersion = JavaVersion.VERSION_11
 
-interface ServerApi {
-    companion object {
-        @OptIn(ExperimentalSerializationApi::class)
-        fun create(baseServerUrl: String = BuildConfig.SERVER_BASE_URL) =
-            Retrofit.Builder()
-                .baseUrl(baseServerUrl)
-                .client(
-                    OkHttpClient.Builder()
-                        .addInterceptor(HttpLoggingInterceptor {
-                            Log.i("OkHttp", it)
-                        }.setLevel(BODY))
-                        .build()
-                )
-                .addConverterFactory(Json.asConverterFactory("application/json".toMediaType()))
-                .build()
-                .create<ServerApi>()
+java {
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+}
+
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = javaVersion.toString()
     }
+}
 
-    @GET("/rtm_token")
-    suspend fun createRtmToken(@Query("user_name") userName: String): TokenResponse
+dependencies {
+    implementation(project(":api"))
 
-    @GET("/rtc_token")
-    suspend fun createRtcToken(
-        @Query("user_id") userId: UserId,
-        @Query("room_id") roomId: RoomId,
-        @Query("is_creator") isBroadcaster: Boolean
-    ): TokenResponse
+    implementation("io.agora:authentication:1.6.1")
+    implementation("commons-codec:commons-codec:1.11")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.2")
+
+    testImplementation("junit:junit:4.13.2")
 }

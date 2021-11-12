@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 /*
  * Copyright (c) 2021 Razeware LLC
  *
@@ -32,34 +34,25 @@
  * THE SOFTWARE.
  */
 
-package com.raywenderlich.android.club
-
-import android.app.Application
-import android.content.Context
-import com.raywenderlich.android.club.controllers.SessionManager
-import com.raywenderlich.android.club.controllers.persistence.SettingsRepository
-import com.raywenderlich.android.club.server.FakeServerApi
-import kotlin.time.Duration
-import kotlin.time.ExperimentalTime
-
-@OptIn(ExperimentalTime::class)
-class App : Application() {
-
-    /* Injected dependencies */
-
-    val sessionManager by lazy {
-        SessionManager(
-            context = this,
-            appId = BuildConfig.AGORA_APP_ID,
-            serverApi = FakeServerApi(
-                agoraAppId = BuildConfig.AGORA_APP_ID,
-                agoraAppCertificate = BuildConfig.AGORA_APP_CERTIFICATE,
-                tokenExpiration = Duration.hours(1)
-            )
-        )
-    }
-
-    val settingsRepository by lazy { SettingsRepository(this) }
+plugins {
+    id("java-library")
+    kotlin("jvm")
+    kotlin("plugin.serialization")
 }
 
-val Context.app: App get() = applicationContext as App
+val javaVersion = JavaVersion.VERSION_11
+
+java {
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
+}
+
+tasks.withType<KotlinCompile> {
+    kotlinOptions {
+        jvmTarget = javaVersion.toString()
+    }
+}
+
+dependencies {
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.0")
+}

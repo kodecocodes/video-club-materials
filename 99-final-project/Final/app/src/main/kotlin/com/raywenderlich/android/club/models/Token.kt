@@ -42,7 +42,3 @@ data class TokenResponse(
     @SerialName("token")
     val token: Token
 )
-
-@Serializable
-@JvmInline
-value class Token(val value: String)

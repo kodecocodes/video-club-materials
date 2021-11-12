@@ -37,6 +37,7 @@ package com.raywenderlich.android.club.controllers
 import android.content.Context
 import com.raywenderlich.android.agora.rtm.*
 import com.raywenderlich.android.club.BuildConfig
+import com.raywenderlich.android.club.api.ServerApi
 import com.raywenderlich.android.club.controllers.util.ClientListenerImpl
 import com.raywenderlich.android.club.controllers.util.RoomChannelListener
 import com.raywenderlich.android.club.controllers.util.asAttributeList
@@ -64,8 +65,8 @@ import kotlin.random.Random
  */
 class SessionManager(
     context: Context,
-    appId: String = BuildConfig.AGORA_APP_ID,
-    private val serverApi: ServerApi = ServerApi.create(),
+    appId: String,
+    private val serverApi: ServerApi,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
     private companion object {
@@ -180,10 +181,10 @@ class SessionManager(
 
             // Allocate a new user ID and perform the login on the server side
             val userId = UserId(Random.nextInt(0, Int.MAX_VALUE))
-            val tokenResponse = serverApi.createRtmToken(userName)
+            val token = serverApi.createRtmToken(userName)
 
             // Sign into Agora RTM system and hold onto the credentials
-            client.awaitLogin(tokenResponse.token.value, userName)
+            client.awaitLogin(token.value, userName)
             currentUserEvents.value = User(userId, userName)
 
             // Finally, log into the common "lobby" channel,
@@ -266,13 +267,13 @@ class SessionManager(
             }
 
             // Obtain authentication token to the audio streams of the room
-            val tokenResponse = serverApi.createRtcToken(currentUser.id, room.roomId, isBroadcaster)
+            val token = serverApi.createRtcToken(currentUser.id, room.roomId, isBroadcaster)
 
             roomConnection = RoomChannelConnection(
                 room = room,
                 channel = channel,
                 myInfo = memberInfo,
-                token = tokenResponse.token,
+                token = token,
                 listener = channelListener
             )
 
@@ -402,7 +403,7 @@ class SessionManager(
 
                 roomConnection = connection.copy(
                     myInfo = newInfo,
-                    token = newToken.token
+                    token = newToken
                 )
 
                 // Announce the update to our role via the user attributes &
