@@ -48,7 +48,7 @@ import com.raywenderlich.android.club.ui.main.MainViewModel
  */
 fun loginViewModel(activity: ComponentActivity): LoginViewModel {
     val factory = object : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return LoginViewModel(activity.app.settingsRepository, activity.app.sessionManager) as T
         }
     }
@@ -61,7 +61,7 @@ fun loginViewModel(activity: ComponentActivity): LoginViewModel {
  */
 fun mainViewModel(activity: ComponentActivity): MainViewModel {
     val factory = object : ViewModelProvider.Factory {
-        override fun <T : ViewModel?> create(modelClass: Class<T>): T {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
             return MainViewModel(activity.app.sessionManager) as T
         }
     }
