@@ -23,4 +23,5 @@
     <string name="default_room_name">%s\'s Room</string>
     <string name="toast_missing_room_name">You need to give your room a name.</string>
     <string name="label_leave_quietly">✌️ Leave quietly</string>
+    <string name="label_leave_quietly_short">✌️</string>
 </resources>

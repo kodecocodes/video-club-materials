@@ -36,6 +36,7 @@ package com.raywenderlich.android.club.ui.main
 
 import android.Manifest
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -69,7 +70,9 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     /* UI */
 
     private val buttonStartRoom by view<Button>(R.id.button_start_room)
-    private val bottomContainer by view<TextView>(R.id.bottom_container)
+    private val bottomContainer by view<View>(R.id.bottom_container)
+    private val bottomContainerText by view<TextView>(R.id.bottom_container_room_name)
+    private val bottomContainerButton by view<View>(R.id.bottom_container_leave_room)
 
     /* Logic */
 
@@ -95,6 +98,9 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
         bottomContainer.setOnClickListener {
             showActiveRoomScreen()
+        }
+        bottomContainerButton.setOnClickListener {
+            viewModel.leaveRoom()
         }
 
         // Initialize ViewModel and listen to whichever room the user is listening to
@@ -126,7 +132,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     /* Private */
 
     private fun handleCurrentRoom(info: RoomInfo?) {
-        bottomContainer.text = info?.roomId?.toString() ?: ""
+        bottomContainerText.text = info?.roomName ?: ""
         bottomContainer.isVisible = info != null
 
         if (info != null) {

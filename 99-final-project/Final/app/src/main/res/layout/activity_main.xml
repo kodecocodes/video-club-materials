@@ -46,13 +46,40 @@
 
         <!-- Persistent layout for ongoing room -->
 
-        <TextView
+        <LinearLayout
             android:id="@+id/bottom_container"
             android:layout_width="match_parent"
-            android:layout_height="64dp"
+            android:layout_height="wrap_content"
             android:background="@color/colorSurface"
+            android:orientation="horizontal"
+            android:padding="16dp"
             android:visibility="gone"
-            tools:visibility="visible" />
+            android:weightSum="1"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/bottom_container_room_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="Room Name" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/bottom_container_leave_room"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_margin="4dp"
+                android:background="@drawable/bg_circle"
+                android:text="@string/label_leave_quietly_short"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                app:backgroundTint="@color/colorSurfaceSubtle" />
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Persistent layout for ongoing room (sliding on top) -->
