@@ -93,6 +93,10 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
             showStartRoomDialog()
         }
 
+        bottomContainer.setOnClickListener {
+            showActiveRoomScreen()
+        }
+
         // Initialize ViewModel and listen to whichever room the user is listening to
         viewModel = mainViewModel(this)
         viewModel.state
@@ -127,25 +131,28 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
         if (info != null) {
             AudioService.start(this, info)
-
-            supportFragmentManager.commit {
-                setCustomAnimations(
-                    R.anim.slide_in_from_below, R.anim.slide_out_to_below,
-                    R.anim.slide_in_from_below, R.anim.slide_out_to_below
-                )
-                addToBackStack(null)
-                add(
-                    R.id.room_fragment_container,
-                    ActiveRoomBottomSheetFragment.newInstance(),
-                    TAG_BOTTOM_SHEET
-                )
-            }
+            showActiveRoomScreen()
         } else {
             AudioService.stop(this)
 
             supportFragmentManager.findFragmentByTag(TAG_BOTTOM_SHEET)?.let {
                 supportFragmentManager.popBackStack()
             }
+        }
+    }
+
+    private fun showActiveRoomScreen() {
+        supportFragmentManager.commit {
+            setCustomAnimations(
+                R.anim.slide_in_from_below, R.anim.slide_out_to_below,
+                R.anim.slide_in_from_below, R.anim.slide_out_to_below
+            )
+            addToBackStack(null)
+            add(
+                R.id.room_fragment_container,
+                ActiveRoomBottomSheetFragment.newInstance(),
+                TAG_BOTTOM_SHEET
+            )
         }
     }
 

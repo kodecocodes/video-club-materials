@@ -241,6 +241,11 @@ class SessionManager(
     suspend fun joinRoom(room: Room) {
         val currentUser = currentUser ?: return
 
+        // Prevent repeated joins of the same room and abort in this case
+        if (roomConnection?.room?.roomId == room.roomId) {
+            return
+        }
+
         withContext(dispatcher) {
             // Leave any currently active room
             leaveRoom()

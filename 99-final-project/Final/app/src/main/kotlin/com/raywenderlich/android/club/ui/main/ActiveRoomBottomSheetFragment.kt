@@ -58,6 +58,7 @@ class ActiveRoomBottomSheetFragment : Fragment(R.layout.fragment_active_room) {
 
     private val textRoomName by view<TextView>(R.id.text_room_name)
     private val rvUsers by view<RecyclerView>(R.id.rv_users)
+    private val buttonCloseSheet by view<View>(R.id.image_close)
     private val buttonLeaveRoom by view<Button>(R.id.button_leave_room)
     private val buttonRaiseHand by view<View>(R.id.button_raise_hand)
 
@@ -77,6 +78,10 @@ class ActiveRoomBottomSheetFragment : Fragment(R.layout.fragment_active_room) {
 
         // Setup UI
         rvUsers.adapter = rvUsersAdapter
+
+        buttonCloseSheet.setOnClickListener {
+            requireActivity().onBackPressed()
+        }
 
         buttonLeaveRoom.setOnClickListener {
             viewModel.leaveRoom()
