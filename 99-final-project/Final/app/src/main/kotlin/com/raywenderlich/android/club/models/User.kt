@@ -47,7 +47,7 @@ data class User(
 )
 
 @Serializable
-data class UserRoleChanged(
+data class CoHostStatusChanged(
     @SerialName("room_id")
     val roomId: RoomId,
     @SerialName("is_broadcaster")

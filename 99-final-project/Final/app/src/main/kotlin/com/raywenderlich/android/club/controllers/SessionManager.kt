@@ -365,18 +365,16 @@ class SessionManager(
         }
     }
 
-    suspend fun toggleRole(member: MemberInfo) {
+    suspend fun makeCoHost(member: MemberInfo, state: Boolean) {
         // Roles can only be assigned by the original host of the room,
         // and only for members who have raised their hand
         val currentUser = currentUser ?: return
         val connection = roomConnection ?: return
-
         if (connection.room.host.id != currentUser.id) return
-        if (!member.raisedHand) return
 
         withContext(dispatcher) {
             // Flip between audience and co-host
-            val newState = if (member.role == MemberRole.Audience) {
+            val newState = if (state) {
                 MemberRole.CoHost
             } else {
                 MemberRole.Audience
@@ -385,7 +383,7 @@ class SessionManager(
             // Send a message to this specific member and let them know about their new role
             client.awaitSendMessageToPeer(
                 userId = member.agoraId,
-                message = client.createRoleChangedMessage(connection.room.roomId, newState)
+                message = client.createCoHostMessage(connection.room.roomId, newState)
             )
         }
     }
@@ -415,8 +413,9 @@ class SessionManager(
                 val user = currentUser ?: return
                 val connection = roomConnection ?: return
 
+
                 // First verify that the permission is for the correct room
-                val body = message.decodeBody<UserRoleChanged>()
+                val body = message.decodeBody<CoHostStatusChanged>()
                 if (body.roomId != connection.room.roomId) return
 
                 // Now get a new token and store the knowledge in the local roomConnection
@@ -499,11 +498,11 @@ class SessionManager(
         )
     }
 
-    private fun RtmClient.createRoleChangedMessage(roomId: RoomId, role: MemberRole): RtmMessage {
-        val isBroadcaster = role != MemberRole.Audience
+    private fun RtmClient.createCoHostMessage(roomId: RoomId, role: MemberRole): RtmMessage {
+        val isCoHost = role != MemberRole.Audience
         return createSendableMessage(
             kind = Sendable.Kind.RoleChanged,
-            bodyText = Json.encodeToString(UserRoleChanged(roomId, isBroadcaster))
+            bodyText = Json.encodeToString(CoHostStatusChanged(roomId, isCoHost))
         )
     }
 

@@ -34,9 +34,6 @@
 
 package com.raywenderlich.android.club.models
 
-import com.raywenderlich.android.club.models.Room
-import com.raywenderlich.android.club.models.RoomList
-import com.raywenderlich.android.club.models.UserRoleChanged
 import io.agora.rtm.RtmClient
 import io.agora.rtm.RtmMessage
 import kotlinx.serialization.*
@@ -76,7 +73,7 @@ data class Sendable(
         RoomList(com.raywenderlich.android.club.models.RoomList::class),
 
         @SerialName("role-changed")
-        RoleChanged(UserRoleChanged::class),
+        RoleChanged(CoHostStatusChanged::class),
 
         @SerialName("user-updated")
         UserUpdated(com.raywenderlich.android.club.models.UserUpdated::class),

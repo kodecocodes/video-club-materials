@@ -56,6 +56,7 @@ class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
         val connectedRoom: RoomInfo? = null,
         val connectedRoomMembers: List<MemberInfo> = emptyList()
     ) {
+        val currentUserId: UserId? = loginState?.currentUserId()
         val userLongName: String? = loginState?.userLongName()
         val userShortName: String? = loginState?.userShortName()
     }
@@ -153,11 +154,19 @@ class MainViewModel(private val sessionManager: SessionManager) : ViewModel() {
         }
     }
 
-    fun toggleRole(member: MemberInfo) {
+    fun makeCoHost(member: MemberInfo, state: Boolean) {
         viewModelScope.launch {
-            sessionManager.toggleRole(member)
+            sessionManager.makeCoHost(member, state)
         }
     }
+}
+
+private fun LoginState.currentUserId(): UserId? {
+    if (this !is LoginState.Connected) {
+        return null
+    }
+
+    return this.user.id
 }
 
 private fun LoginState.userLongName(): String? {

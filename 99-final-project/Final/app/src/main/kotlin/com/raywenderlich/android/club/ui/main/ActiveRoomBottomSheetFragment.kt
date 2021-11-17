@@ -41,8 +41,11 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.get
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import com.raywenderlich.android.club.R
+import com.raywenderlich.android.club.models.MemberInfo
+import com.raywenderlich.android.club.models.MemberRole
 import com.raywenderlich.android.club.utils.view
 import com.raywenderlich.android.club.utils.viewLifecycleScope
 import kotlinx.coroutines.flow.launchIn
@@ -90,10 +93,37 @@ class ActiveRoomBottomSheetFragment : Fragment(R.layout.fragment_active_room) {
         buttonRaiseHand.setOnClickListener {
             viewModel.toggleHandRaised()
         }
+
+        rvUsersAdapter.itemClickEvents
+            .onEach { addMemberAsCoHostIfPossible(it) }
+            .launchIn(lifecycleScope)
     }
 
     private fun handleState(state: MainViewModel.State) {
         textRoomName.text = state.connectedRoom?.roomName
         rvUsersAdapter.submitList(state.connectedRoomMembers)
+
+        // Only hosts should be able to add co-hosts
+        val isHost = state.connectedRoom?.userId == state.currentUserId
+        rvUsers.isClickable = isHost
+    }
+
+    private fun addMemberAsCoHostIfPossible(member: MemberInfo) {
+        // Toggle the role of the given member between audience and co-host
+        when {
+            // Only members who raise their hand should be addable as co-hosts
+            member.role == MemberRole.Audience && member.raisedHand -> {
+                viewModel.makeCoHost(member, true)
+            }
+
+            // Turn a co-host back to an audience member
+            member.role == MemberRole.CoHost -> {
+                viewModel.makeCoHost(member, false)
+            }
+
+            else -> {
+                // Nothing to do
+            }
+        }
     }
 }

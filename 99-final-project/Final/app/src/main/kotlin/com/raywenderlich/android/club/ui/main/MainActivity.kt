@@ -107,8 +107,9 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         viewModel = mainViewModel(this)
         viewModel.state
             .map { it.connectedRoom }
+            .onEach { handleCurrentRoomAudio(it) }
             .distinctUntilChangedBy { it?.roomId }
-            .onEach { handleCurrentRoom(it) }
+            .onEach { handleCurrentRoomUI(it) }
             .launchIn(lifecycleScope)
 
         // Show initial screen
@@ -131,16 +132,21 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
     /* Private */
 
-    private fun handleCurrentRoom(info: RoomInfo?) {
+    private fun handleCurrentRoomAudio(info: RoomInfo?) {
+        if (info != null) {
+            AudioService.start(this, info)
+        } else {
+            AudioService.stop(this)
+        }
+    }
+
+    private fun handleCurrentRoomUI(info: RoomInfo?) {
         bottomContainerText.text = info?.roomName ?: ""
         bottomContainer.isVisible = info != null
 
         if (info != null) {
-            AudioService.start(this, info)
             showActiveRoomScreen()
         } else {
-            AudioService.stop(this)
-
             supportFragmentManager.findFragmentByTag(TAG_BOTTOM_SHEET)?.let {
                 supportFragmentManager.popBackStack()
             }
@@ -148,6 +154,11 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     }
 
     private fun showActiveRoomScreen() {
+        if (supportFragmentManager.findFragmentByTag(TAG_BOTTOM_SHEET) != null) {
+            // Already showing
+            return
+        }
+
         supportFragmentManager.commit {
             setCustomAnimations(
                 R.anim.slide_in_from_below, R.anim.slide_out_to_below,
