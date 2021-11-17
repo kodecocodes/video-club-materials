@@ -59,6 +59,7 @@ class ActiveRoomBottomSheetFragment : Fragment(R.layout.fragment_active_room) {
     private val textRoomName by view<TextView>(R.id.text_room_name)
     private val rvUsers by view<RecyclerView>(R.id.rv_users)
     private val buttonLeaveRoom by view<Button>(R.id.button_leave_room)
+    private val buttonRaiseHand by view<View>(R.id.button_raise_hand)
 
     /* Logic */
 
@@ -79,6 +80,10 @@ class ActiveRoomBottomSheetFragment : Fragment(R.layout.fragment_active_room) {
 
         buttonLeaveRoom.setOnClickListener {
             viewModel.leaveRoom()
+        }
+
+        buttonRaiseHand.setOnClickListener {
+            viewModel.toggleHandRaised()
         }
     }
 
