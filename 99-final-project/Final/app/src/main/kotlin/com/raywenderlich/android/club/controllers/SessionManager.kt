@@ -47,11 +47,8 @@ import io.agora.rtm.RtmChannelMember
 import io.agora.rtm.RtmClient
 import io.agora.rtm.RtmMessage
 import io.agora.rtm.RtmStatusCode.ConnectionState.*
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.*
@@ -106,7 +103,7 @@ class SessionManager(
             )
         )
     }
-    private val coroutineScope = CoroutineScope(dispatcher)
+    private var coroutineScope = CoroutineScope(dispatcher)
 
     // Currently logged-in user; set to non-null after login
     private val currentUserEvents = MutableStateFlow<User?>(null)
@@ -213,6 +210,8 @@ class SessionManager(
 
             // Sign out of the system completely
             client.awaitLogout()
+            coroutineScope.cancel()
+            coroutineScope = CoroutineScope(dispatcher)
             currentUserEvents.value = null
         }
     }
@@ -287,10 +286,23 @@ class SessionManager(
             )
 
             // If the room was just created by the current user,
-            // broadcast its availability to users in the lobby
+            // broadcast its availability to users in the lobby.
+            // It is also the host's responsibility to keep their room updated
+            // when members join or leave in the future
             if (isBroadcaster) {
-                _openRoomEvents.update { it + room }
-                sendUpdatedRoomListToLobbyUsers()
+                channelListener.membersFlow
+                    .map { it.size }
+                    .onEach { count ->
+                        val updatedRoom = room.copy(memberCount = count)
+                        _openRoomEvents.update { rooms ->
+                            rooms.toMutableSet().apply {
+                                removeAll { it.roomId == updatedRoom.roomId }
+                                add(updatedRoom)
+                            }
+                        }
+                        sendUpdatedRoomListToLobbyUsers()
+                    }
+                    .launchIn(coroutineScope)
             }
         }
     }
@@ -306,10 +318,8 @@ class SessionManager(
                 // If this user was the host of the room,
                 // notify its disappearance to users in the lobby
                 // and throw everybody out
-                if (connection.myInfo.role == MemberRole.Host) {
-                    _openRoomEvents.update { it - connection.room }
-                    sendUpdatedRoomListToLobbyUsers(wait = true)
-
+                val hostLeft = connection.myInfo.role == MemberRole.Host
+                if (hostLeft) {
                     client.awaitSendMessageToChannelMembers(
                         channel = connection.channel,
                         message = client.createRoomClosedMessage(connection.room)
@@ -320,6 +330,12 @@ class SessionManager(
 
                 connection.channel.awaitLeave()
                 connection.channel.release()
+
+                if (hostLeft) {
+                    _openRoomEvents.update { it - connection.room }
+                    sendUpdatedRoomListToLobbyUsers(wait = true)
+                }
+
                 roomConnection = null
             }
         }
